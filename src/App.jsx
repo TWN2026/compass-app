@@ -1,0 +1,900 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ─── SEED DATA ────────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2, 9);
+const initials = n => n.split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
+const avatarColor = n => { const c=["#7a9e7e","#c9a84c","#c25b3f","#4a90d9","#7c6fcd","#e07b54","#5ba4a4"]; let h=0; for(const ch of n) h=(h*31+ch.charCodeAt(0))%c.length; return c[h]; };
+const today = () => new Date().toISOString().split("T")[0];
+
+const SEED = {
+  b1: {
+    id:"b1", company:"Acme Corp", industry:"B2B SaaS", color:"#7a9e7e",
+    users:[
+      {id:"b1-u1",name:"Sarah Mitchell",email:"sarah@acme.com",username:"sarah.acme",password:"acme123",role:"owner"},
+      {id:"b1-u2",name:"James Chen",email:"james@acme.com",username:"james.acme",password:"acme456",role:"member"},
+      {id:"b1-u3",name:"Lisa Wong",email:"lisa@acme.com",username:"lisa.acme",password:"acme789",role:"member"},
+    ],
+    plan:{
+      coreValues:[{id:1,title:"Integrity First",desc:"We do what we say, always."},{id:2,title:"Customer Obsession",desc:"Every decision starts with the customer."},{id:3,title:"Relentless Improvement",desc:"Better every single day."}],
+      purpose:"Empowering businesses to scale with confidence",
+      niche:"B2B SaaS for mid-market companies",
+      bhag:{goal:"Become the #1 SMB operating platform globally",date:"2035-01-01",narrative:"A world where every small business has enterprise-grade tools."},
+      threeYear:{date:"2028-01-01",revenue:"$20M",profit:"$4M",measurables:[{id:1,label:"Customers",value:"500+"},{id:2,label:"Team Size",value:"80+"},{id:3,label:"NPS",value:"72+"}],possibilities:["Expand to APAC","Launch mobile app","Strategic acquisition"]},
+      oneYear:{date:"2026-01-01",revenue:"$8M",profit:"$1.2M",measurables:[{id:1,label:"ARR",value:"$8M"},{id:2,label:"Headcount",value:"40"}],goals:["Hire VP of Sales","Launch v3 platform","Expand to 3 new verticals","Achieve SOC 2 compliance"]},
+      quarterly:{date:"2025-06-30",revenue:"$2M",profit:"$300K",measurables:[{id:1,label:"New MRR",value:"$150K"},{id:2,label:"Churn",value:"<2%"}],goal:"Nail the enterprise pilot program with 5 anchor clients"},
+      longTermIssues:[{id:1,title:"Pricing model needs revision for enterprise tier",owner:"Sarah Mitchell"},{id:2,title:"Engineering hiring pipeline is too slow",owner:"James Chen"}],
+    },
+    orgChart:{
+      seats:[
+        {id:"s1",title:"Visionary / CEO",person:"Sarah Mitchell",accountabilities:["Company vision","Culture","Key relationships"],parentId:null},
+        {id:"s2",title:"Integrator / COO",person:"James Chen",accountabilities:["P&L","Team accountability","Remove obstacles"],parentId:"s1"},
+        {id:"s3",title:"Head of Sales",person:"Open",accountabilities:["Revenue targets","Pipeline","Customer acquisition"],parentId:"s2"},
+        {id:"s4",title:"Head of Engineering",person:"Lisa Wong",accountabilities:["Product delivery","Tech roadmap","Team hiring"],parentId:"s2"},
+        {id:"s5",title:"Head of Finance",person:"Open",accountabilities:["Budgeting","Reporting","Cash flow"],parentId:"s2"},
+      ]
+    },
+    rocks:[
+      {id:1,title:"Launch Q2 marketing campaign",owner:"Sarah Mitchell",dueDate:"2025-06-30",status:"on-track",progress:65,milestones:[{id:1,text:"Brief agency",done:true},{id:2,text:"Approve creative",done:true},{id:3,text:"Go live",done:false}]},
+      {id:2,title:"Hire 2 senior engineers",owner:"James Chen",dueDate:"2025-06-30",status:"off-track",progress:20,milestones:[{id:1,text:"Post JDs",done:true},{id:2,text:"First round interviews",done:false},{id:3,text:"Offers out",done:false}]},
+      {id:3,title:"Complete CRM migration",owner:"Lisa Wong",dueDate:"2025-06-30",status:"on-track",progress:80,milestones:[{id:1,text:"Data audit",done:true},{id:2,text:"Migration script",done:true},{id:3,text:"UAT",done:false}]},
+    ],
+    scorecard:[
+      {id:1,metric:"Weekly Revenue",owner:"Sarah Mitchell",goal:"45000",goalType:"min",freq:"weekly",values:[{wk:"Mar 1",v:42000},{wk:"Mar 8",v:47000},{wk:"Mar 15",v:44000},{wk:"Mar 22",v:51000},{wk:"Mar 29",v:48000},{wk:"Apr 5",v:52000}]},
+      {id:2,metric:"New Leads",owner:"James Chen",goal:"25",goalType:"min",freq:"weekly",values:[{wk:"Mar 1",v:18},{wk:"Mar 8",v:22},{wk:"Mar 15",v:19},{wk:"Mar 22",v:28},{wk:"Mar 29",v:24},{wk:"Apr 5",v:31}]},
+      {id:3,metric:"Churn Rate %",owner:"Lisa Wong",goal:"2",goalType:"max",freq:"monthly",values:[{wk:"Jan",v:3.1},{wk:"Feb",v:2.8},{wk:"Mar",v:2.5},{wk:"Apr",v:2.2}]},
+    ],
+    issues:[
+      {id:1,title:"Sales process inconsistency across reps",priority:"high",owner:"Sarah Mitchell",status:"open",date:"2025-03-01",type:"short"},
+      {id:2,title:"CRM data not being updated regularly",priority:"medium",owner:"James Chen",status:"open",date:"2025-02-28",type:"short"},
+      {id:3,title:"Brand refresh needed for enterprise market",priority:"low",owner:"Sarah Mitchell",status:"solved",date:"2025-02-10",type:"short"},
+    ],
+    todos:[
+      {id:1,title:"Send Q1 report to board",owner:"Sarah Mitchell",dueDate:"2025-03-10",done:false},
+      {id:2,title:"Review job descriptions for engineering roles",owner:"James Chen",dueDate:"2025-03-08",done:true},
+      {id:3,title:"Schedule all-hands meeting",owner:"Sarah Mitchell",dueDate:"2025-03-12",done:false},
+    ],
+    headlines:[
+      {id:1,owner:"Sarah Mitchell",text:"Won Apex deal — $120K ARR!",date:"2025-03-05"},
+      {id:2,owner:"James Chen",text:"Engineering team completed sprint 14 two days early",date:"2025-03-04"},
+    ],
+    meetingNotes:[
+      {id:1,date:"2025-02-26",type:"L10",attendees:"Full leadership team",segue:"Q2 feels exciting",headlines:"Won Apex deal",rocks:"2/3 on track",issues:"CRM adoption bottleneck",todos:"James to audit CRM by Friday",rating:8,emailSent:false},
+    ],
+    rprs:[
+      {id:1,employee:"Sarah Mitchell",seat:"Visionary / CEO",getsIt:true,wantsIt:true,hasCapacity:true,cvFit:5,notes:"Founding visionary, sets the tone."},
+      {id:2,employee:"James Chen",seat:"Integrator / COO",getsIt:true,wantsIt:true,hasCapacity:false,cvFit:4,notes:"Strong integrator, slightly overloaded."},
+      {id:3,employee:"Lisa Wong",seat:"Head of Engineering",getsIt:true,wantsIt:true,hasCapacity:true,cvFit:5,notes:"Technical excellence, great culture fit."},
+    ],
+    oneOnOnes:[
+      {id:1,employee:"James Chen",manager:"Sarah Mitchell",date:"2025-03-01",quarter:"Q1 2025",highlights:"Strong quarter overall",challenges:"Capacity constraints slowing hiring",goals:"Complete 2 key hires by end of Q2",rating:4,archived:false},
+    ],
+    notifications:[],
+  },
+  b2: {
+    id:"b2", company:"Vertex Solutions", industry:"HR Tech", color:"#c9a84c",
+    users:[
+      {id:"b2-u1",name:"James Turner",email:"james@vertex.com",username:"james.vertex",password:"vertex123",role:"owner"},
+      {id:"b2-u2",name:"Amy Lee",email:"amy@vertex.com",username:"amy.vertex",password:"vertex456",role:"member"},
+    ],
+    plan:{
+      coreValues:[{id:1,title:"Transparency",desc:"Radical honesty, always."},{id:2,title:"Speed",desc:"Move fast, iterate faster."},{id:3,title:"Excellence",desc:"Never good enough until it's great."}],
+      purpose:"Connecting talent with opportunity at scale",niche:"HR tech for distributed teams",
+      bhag:{goal:"The LinkedIn for distributed workforce management",date:"2034-01-01",narrative:"Every remote company runs on Vertex."},
+      threeYear:{date:"2028-01-01",revenue:"$12M",profit:"$2M",measurables:[{id:1,label:"Customers",value:"1,000+"},{id:2,label:"Team",value:"50+"}],possibilities:["Launch in EU","Acquire competitor","Go public"]},
+      oneYear:{date:"2026-01-01",revenue:"$1.5M",profit:"$200K",measurables:[{id:1,label:"ARR",value:"$1.5M"}],goals:["Close Series A","Hire VP Engineering","Launch EU expansion"]},
+      quarterly:{date:"2025-06-30",revenue:"$350K",profit:"$50K",measurables:[{id:1,label:"New Logos",value:"20"}],goal:"Close Series A and sign first enterprise deal"},
+      longTermIssues:[{id:1,title:"Product-market fit in EU still unclear",owner:"James Turner"}],
+    },
+    orgChart:{seats:[{id:"s1",title:"CEO / Founder",person:"James Turner",accountabilities:["Vision","Fundraising","Strategy"],parentId:null},{id:"s2",title:"Head of CS",person:"Amy Lee",accountabilities:["Customer success","Retention","Onboarding"],parentId:"s1"}]},
+    rocks:[{id:1,title:"Close Series A",owner:"James Turner",dueDate:"2025-06-30",status:"on-track",progress:55,milestones:[]},{id:2,title:"Build CS team",owner:"Amy Lee",dueDate:"2025-06-30",status:"on-track",progress:40,milestones:[]}],
+    scorecard:[{id:1,metric:"MRR",owner:"James Turner",goal:"120000",goalType:"min",freq:"monthly",values:[{wk:"Jan",v:98000},{wk:"Feb",v:103000},{wk:"Mar",v:108000},{wk:"Apr",v:121000}]}],
+    issues:[{id:1,title:"Investor deck needs refreshing",priority:"high",owner:"James Turner",status:"open",date:"2025-03-01",type:"short"}],
+    todos:[{id:1,title:"Prepare pitch deck v4",owner:"James Turner",dueDate:"2025-03-15",done:false},{id:2,title:"Draft CS playbook",owner:"Amy Lee",dueDate:"2025-03-20",done:false}],
+    headlines:[],meetingNotes:[],rprs:[],oneOnOnes:[],notifications:[],
+  },
+};
+
+const COACH = {id:"coach",username:"coach",password:"coach123",role:"coach",name:"Dean (Coach)",email:"dean@coaching.com"};
+
+// ─── AI ───────────────────────────────────────────────────────────────────────
+async function aiGenerate(prompt) {
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+    const d = await r.json();
+    return d.content?.[0]?.text || "Could not generate.";
+  } catch { return "Error contacting AI. Please try again."; }
+}
+
+// ─── CSS ──────────────────────────────────────────────────────────────────────
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#111210;--paper:#f8f7f4;--cream:#f0ede6;--gold:#b8953a;--gold-l:#e6d5a0;
+  --sage:#6b9e72;--rust:#bb4d38;--slate:#4f5a6a;--mist:#dedad3;--white:#ffffff;
+  --sh:rgba(17,18,16,0.07);--blue:#3d7ab5;--pur:#6b5fad;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px}
+
+/* LOGIN */
+.login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.ll{background:linear-gradient(155deg,#14160f 0%,#1d2218 60%,#111210 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px;position:relative;overflow:hidden}
+.ll::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 25% 55%,rgba(184,149,58,.18) 0%,transparent 55%)}
+.orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(184,149,58,.12) 0%,transparent 70%);pointer-events:none}
+.logo{font-family:'Cormorant Garamond',serif;font-size:58px;font-weight:700;color:var(--gold);letter-spacing:-1px;position:relative;z-index:1;line-height:1}
+.logo-sub{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:3.5px;text-transform:uppercase;margin-top:12px;position:relative;z-index:1}
+.lr{background:var(--paper);display:flex;align-items:center;justify-content:center;padding:60px}
+.lf{width:100%;max-width:380px}
+.lf h2{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;margin-bottom:6px}
+.lf>p{color:var(--slate);font-size:13px;margin-bottom:30px}
+.fi{margin-bottom:16px}
+.fi label{display:block;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+.fi input{width:100%;padding:12px 14px;border:1.5px solid var(--mist);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--white);color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.fi input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,149,58,.12)}
+.btn-login{width:100%;padding:13px;background:var(--ink);color:var(--gold);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:background .2s}
+.btn-login:hover{background:#222}
+.hint{margin-top:20px;padding:13px 15px;background:var(--cream);border-radius:8px;font-size:11px;color:var(--slate);line-height:1.8}
+.hint strong{color:var(--ink)}
+.err{color:var(--rust);font-size:12px;margin-top:6px}
+
+/* SHELL */
+.app{display:flex;min-height:100vh}
+.sb{width:248px;min-height:100vh;background:var(--ink);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto}
+.sb-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold)}
+.sb-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.sb-user{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-uname{font-size:12.5px;font-weight:600;color:var(--white)}
+.sb-urole{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.sb-nav{flex:1;padding:8px 0}
+.ns{padding:12px 20px 4px;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18)}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:background .15s;color:rgba(255,255,255,.42);font-size:13px;border-left:2px solid transparent;user-select:none}
+.ni:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.8)}
+.ni.on{background:rgba(184,149,58,.11);color:var(--gold);border-left-color:var(--gold)}
+.sb-footer{padding:12px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.lout{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.28);font-size:12px;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;transition:color .15s;width:100%;text-align:left}
+.lout:hover{color:var(--rust)}
+
+/* MAIN */
+.main{margin-left:248px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--mist);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.pt{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--ink)}
+.ps{font-size:11px;color:var(--slate);margin-top:1px}
+.content{padding:28px 32px;flex:1}
+
+/* CARDS */
+.card{background:var(--white);border-radius:10px;border:1px solid var(--mist);padding:20px;margin-bottom:16px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--mist)}
+.ct{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+
+/* STAT */
+.sc{background:var(--white);border:1px solid var(--mist);border-radius:10px;padding:16px}
+.sl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate)}
+.sv{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1}
+.sn{font-size:11px;color:var(--slate);margin-top:3px}
+
+/* BADGE */
+.bdg{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;display:inline-block}
+.bg{background:rgba(107,158,114,.14);color:var(--sage)}
+.br{background:rgba(187,77,56,.14);color:var(--rust)}
+.bb{background:rgba(61,122,181,.14);color:var(--blue)}
+.bgold{background:rgba(184,149,58,.14);color:var(--gold)}
+.bsl{background:rgba(79,90,106,.1);color:var(--slate)}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--slate);margin-bottom:4px}
+.fg input,.fg textarea,.fg select{width:100%;padding:9px 12px;border:1.5px solid var(--mist);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--white);color:var(--ink);transition:border-color .2s}
+.fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--gold)}
+.fg textarea{resize:vertical;min-height:64px}
+.btn{padding:8px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-xs{padding:3px 9px;font-size:10px;font-weight:700}
+.bdk{background:var(--ink);color:var(--gold)}
+.bdk:hover{background:#222}
+.bol{background:transparent;border:1.5px solid var(--mist);color:var(--slate)}
+.bol:hover{border-color:var(--ink);color:var(--ink)}
+.bsage{background:var(--sage);color:white}
+.bsage:hover{background:#5a8e61}
+.brust{background:var(--rust);color:white}
+
+/* ROCKS */
+.ri{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--mist)}
+.ri:last-child{border-bottom:none}
+.rd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.don{background:var(--sage)}
+.doff{background:var(--rust)}
+.rin{flex:1}
+.rt{font-size:13px;font-weight:500}
+.rm{font-size:11px;color:var(--slate);margin-top:2px}
+.pb{height:4px;background:var(--mist);border-radius:2px;margin-top:6px}
+.pf{height:100%;border-radius:2px;background:var(--sage)}
+.pf.off{background:var(--rust)}
+
+/* ISSUES */
+.ii{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--mist)}
+.ii:last-child{border-bottom:none}
+.ibar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0}
+.hip{background:var(--rust)}
+.mip{background:var(--gold)}
+.lip{background:var(--sage)}
+
+/* TODOS */
+.tdi{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--mist);cursor:pointer}
+.tdi:last-child{border-bottom:none}
+.tck{width:17px;height:17px;border-radius:50%;border:2px solid var(--mist);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:9px}
+.tck.dn{background:var(--sage);border-color:var(--sage);color:white}
+
+/* SCORECARD */
+.sct{width:100%;border-collapse:collapse}
+.sct th{text-align:left;padding:8px 10px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--slate);border-bottom:2px solid var(--mist);white-space:nowrap}
+.sct td{padding:10px 10px;border-bottom:1px solid var(--mist);font-size:12px;vertical-align:middle}
+.sct tr:last-child td{border-bottom:none}
+.wkc{width:52px;height:28px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;transition:all .2s}
+.met{background:rgba(107,158,114,.15);color:#3d7a44}
+.mss{background:rgba(187,77,56,.15);color:var(--rust)}
+.mna{background:transparent;color:var(--slate)}
+
+/* SPARKLINE */
+.spark{display:flex;align-items:flex-end;gap:2px;height:24px}
+.sb2{width:6px;border-radius:1px 1px 0 0;background:var(--mist);transition:height .3s}
+
+/* AVATAR */
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0}
+.av-lg{width:36px;height:36px;font-size:12px}
+
+/* VTO */
+.vs{margin-bottom:20px}
+.vl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+.vv{font-size:13px;color:var(--ink);line-height:1.6}
+.vp{display:inline-block;padding:3px 10px;border-radius:20px;background:var(--cream);border:1px solid var(--mist);font-size:11px;font-weight:500;margin:2px 3px 2px 0}
+
+/* MEETING */
+.mn{background:var(--cream);border-radius:8px;padding:16px;margin-bottom:12px}
+.mr{display:flex;gap:8px;margin-bottom:6px}
+.mk{font-size:10px;font-weight:700;color:var(--slate);width:90px;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px;padding-top:1px}
+.mv{font-size:12px;color:var(--ink);line-height:1.5;flex:1}
+
+/* WELCOME */
+.wb{background:var(--ink);border-radius:10px;padding:22px 26px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+.wbt h2{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--white)}
+.wbt p{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px}
+
+/* CLIENT CARD */
+.cc{background:var(--white);border:1px solid var(--mist);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.cc:hover{box-shadow:0 4px 18px var(--sh);transform:translateY(-1px)}
+.cn{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
+.csub{font-size:11px;color:var(--slate);margin-top:1px;margin-bottom:10px}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(17,18,16,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.md{background:var(--white);border-radius:14px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22)}
+.mdh{padding:22px 26px 16px;border-bottom:1px solid var(--mist);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;border-radius:14px 14px 0 0}
+.mdt{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
+.mdc{background:none;border:none;font-size:20px;cursor:pointer;color:var(--slate);padding:2px 6px;border-radius:4px;line-height:1}
+.mdc:hover{background:var(--cream)}
+.mdb{padding:22px 26px}
+.mdf{padding:14px 26px 22px;display:flex;gap:8px;justify-content:flex-end}
+
+/* NOTIF */
+.nbell{position:relative;cursor:pointer;padding:5px 9px;border-radius:7px;font-size:17px;transition:background .15s;user-select:none}
+.nbell:hover{background:var(--cream)}
+.ndot{position:absolute;top:3px;right:5px;width:7px;height:7px;background:var(--rust);border-radius:50%;border:2px solid var(--white)}
+.ndd{position:absolute;top:calc(100% + 7px);right:0;width:300px;background:var(--white);border:1px solid var(--mist);border-radius:10px;box-shadow:0 8px 28px var(--sh);z-index:100;overflow:hidden}
+.ndi{padding:11px 14px;border-bottom:1px solid var(--mist);font-size:12px;cursor:default}
+.ndi:last-child{border-bottom:none}
+.ndi.unr{background:rgba(184,149,58,.05)}
+.ndt{font-weight:600;color:var(--ink)}
+.nds{font-size:10px;color:var(--slate);margin-top:1px}
+
+/* AI */
+.ail{display:flex;align-items:center;gap:10px;padding:18px;color:var(--slate);font-size:13px;font-style:italic}
+.ail span{display:inline-block;animation:bl 1.2s infinite}
+.ail span:nth-child(2){animation-delay:.2s}
+.ail span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.15}40%{opacity:1}}
+.ais{background:linear-gradient(135deg,rgba(184,149,58,.05),rgba(107,158,114,.05));border:1px solid var(--gold-l);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
+
+/* CREDS */
+.crb{background:var(--ink);border-radius:8px;padding:16px;margin-top:14px}
+.crr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.crr:last-child{border-bottom:none}
+.crl{font-size:9px;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.5px}
+.crv{font-size:11px;color:var(--gold);font-weight:500;font-family:monospace}
+
+/* USER ROW */
+.ur{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--mist)}
+.ur:last-child{border-bottom:none}
+.un{font-size:13px;font-weight:500}
+.ue{font-size:10px;color:var(--slate);margin-top:1px}
+.trole{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+.tor{background:rgba(184,149,58,.12);color:#8a6010}
+.tmb{background:rgba(79,90,106,.08);color:var(--slate)}
+
+/* INLINE FORM */
+.inf{background:var(--cream);border-radius:8px;padding:16px;margin-bottom:16px}
+.est{text-align:center;padding:32px 0;color:var(--slate);font-size:13px}
+.div{border:none;border-top:1px solid var(--mist);margin:14px 0}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--mist)}
+.sdot.act{background:var(--gold)}
+.sdot.dn2{background:var(--sage)}
+
+/* ORG CHART */
+.oc-wrap{overflow-x:auto;padding:20px 0}
+.oc-tree{display:flex;flex-direction:column;align-items:center;gap:0}
+.oc-row{display:flex;gap:24px;justify-content:center}
+.oc-node{background:var(--white);border:1.5px solid var(--mist);border-radius:10px;padding:14px 18px;min-width:160px;text-align:center;position:relative;transition:box-shadow .2s}
+.oc-node:hover{box-shadow:0 4px 16px var(--sh)}
+.oc-node.root{border-color:var(--gold);background:rgba(184,149,58,.04)}
+.oc-seat{font-size:12px;font-weight:600;color:var(--ink)}
+.oc-person{font-size:11px;color:var(--slate);margin-top:3px}
+.oc-person.open{color:var(--rust);font-style:italic}
+.oc-line{width:2px;height:24px;background:var(--mist);margin:0 auto}
+.oc-hline{height:2px;background:var(--mist);flex:1;margin-top:24px}
+
+/* MEETING RUNNER */
+.mr-seg{background:var(--cream);border-radius:10px;padding:18px;margin-bottom:12px;border:2px solid transparent;transition:border-color .2s}
+.mr-seg.cur{border-color:var(--gold);background:rgba(184,149,58,.06)}
+.mr-sname{font-weight:600;font-size:14px}
+.mr-sdur{font-size:11px;color:var(--slate);margin-top:2px}
+.timer{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:700;color:var(--ink);text-align:center;margin:10px 0}
+.timer.warn{color:var(--rust)}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--cream);border-radius:8px;padding:3px;margin-bottom:16px}
+.tab{flex:1;padding:7px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--slate);background:transparent;transition:all .15s}
+.tab.on{background:var(--white);color:var(--ink);font-weight:600;box-shadow:0 1px 4px var(--sh)}
+
+/* RPRS */
+.gwc{display:flex;gap:6px;margin-top:6px}
+.gwcb{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid transparent;cursor:pointer;transition:all .15s}
+.gwcb.y{background:rgba(107,158,114,.15);border-color:var(--sage);color:var(--sage)}
+.gwcb.n{background:rgba(187,77,56,.12);border-color:var(--rust);color:var(--rust)}
+
+/* STATS CHART */
+.chart-wrap{position:relative;height:180px;margin-top:10px}
+.chart-line{position:absolute;bottom:0;left:0;right:0}
+
+/* HEADLINE */
+.hl{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--mist);align-items:flex-start}
+.hl:last-child{border-bottom:none}
+.hl-text{font-size:13px;flex:1;line-height:1.4}
+.hl-meta{font-size:10px;color:var(--slate);margin-top:2px}
+
+@media(max-width:768px){.g2,.g3,.g4{grid-template-columns:1fr}.sb{width:220px}.main{margin-left:220px}}
+`;
+
+// ─── MINI COMPONENTS ──────────────────────────────────────────────────────────
+function Avatar({name,size="",style={}}){return <div className={`av ${size}`} style={{background:avatarColor(name),...style}}>{initials(name)}</div>}
+
+function Sparkline({values,goal,goalType}){
+  const max=Math.max(...values.map(v=>v.v),Number(goal));
+  return <div className="spark">{values.map((v,i)=>{
+    const h=Math.max(4,Math.round((v.v/max)*24));
+    const good=goalType==="min"?v.v>=Number(goal):v.v<=Number(goal);
+    return <div key={i} className="sb2" style={{height:h,background:good?"var(--sage)":"var(--rust)",opacity:i===values.length-1?1:0.5}}/>;
+  })}</div>;
+}
+
+function Notif({notifs,onClear}){
+  const [open,setOpen]=useState(false);const ref=useRef();
+  useEffect(()=>{const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false)};document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h)},[]);
+  const unr=notifs.filter(n=>!n.read).length;
+  return <div style={{position:"relative"}} ref={ref}>
+    <div className="nbell" onClick={()=>setOpen(o=>!o)}>🔔{unr>0&&<div className="ndot"/>}</div>
+    {open&&<div className="ndd">
+      <div style={{padding:"10px 14px 8px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid var(--mist)"}}>
+        <span style={{fontSize:12,fontWeight:600}}>Notifications</span>
+        {notifs.length>0&&<button className="btn btn-xs bol" onClick={onClear}>Clear</button>}
+      </div>
+      {notifs.length===0&&<div style={{padding:16,textAlign:"center",fontSize:12,color:"var(--slate)"}}>No notifications</div>}
+      {notifs.map(n=><div key={n.id} className={`ndi ${n.read?"":"unr"}`}><div className="ndt">{n.title}</div><div className="nds">{n.body}</div></div>)}
+    </div>}
+  </div>;
+}
+
+function EmailModal({open,onClose,title,content,loading}){
+  if(!open)return null;
+  return <div className="mo" onClick={onClose}><div className="md" style={{maxWidth:680}} onClick={e=>e.stopPropagation()}>
+    <div className="mdh"><div className="mdt">{title}</div><button className="mdc" onClick={onClose}>×</button></div>
+    <div className="mdb">{loading?<div className="ail">✦ Drafting with AI <span>.</span><span>.</span><span>.</span></div>:<div className="ais">{content}</div>}</div>
+    <div className="mdf">{!loading&&<button className="btn bdk" onClick={()=>navigator.clipboard?.writeText(content)}>📋 Copy</button>}<button className="btn bol" onClick={onClose}>Close</button></div>
+  </div></div>;
+}
+
+// ─── ADD CLIENT MODAL ─────────────────────────────────────────────────────────
+function AddClientModal({open,onClose,onAdd}){
+  const [step,setStep]=useState(1);
+  const [biz,setBiz]=useState({company:"",industry:"",color:"#6b9e72"});
+  const [owner,setOwner]=useState({name:"",email:"",username:"",password:""});
+  const [members,setMembers]=useState([]);
+  const [nm,setNm]=useState({name:"",email:"",username:"",password:""});
+  const [done,setDone]=useState(null);
+  const colors=["#6b9e72","#b8953a","#bb4d38","#3d7ab5","#6b5fad","#e07b54","#5ba4a4"];
+  const reset=()=>{setStep(1);setBiz({company:"",industry:"",color:"#6b9e72"});setOwner({name:"",email:"",username:"",password:""});setMembers([]);setNm({name:"",email:"",username:"",password:""});setDone(null)};
+  const addMember=()=>{if(!nm.name||!nm.username)return;setMembers(m=>[...m,{...nm,id:uid(),role:"member"}]);setNm({name:"",email:"",username:"",password:""})};
+  const finish=()=>{
+    const id="b"+uid();
+    const nb={id,...biz,users:[{...owner,id:uid(),role:"owner"},...members],
+      plan:{coreValues:[],purpose:"",niche:"",bhag:{goal:"",date:"",narrative:""},threeYear:{date:"",revenue:"",profit:"",measurables:[],possibilities:[]},oneYear:{date:"",revenue:"",profit:"",measurables:[],goals:[]},quarterly:{date:"",revenue:"",profit:"",measurables:[],goal:""},longTermIssues:[]},
+      orgChart:{seats:[]},rocks:[],scorecard:[],issues:[],todos:[],headlines:[],meetingNotes:[],rprs:[],oneOnOnes:[],notifications:[]};
+    setDone(nb);onAdd(nb);setStep(4);
+  };
+  if(!open)return null;
+  return <div className="mo"><div className="md">
+    <div className="mdh">
+      <div><div className="mdt">{step<4?"Add Business Client":"✦ Client Created!"}</div>
+        <div style={{display:"flex",gap:5,marginTop:7}}>{[1,2,3].map(s=><div key={s} className={`sdot ${s<step||step===4?"dn2":s===step?"act":""}`}/>)}</div>
+      </div>
+      <button className="mdc" onClick={()=>{reset();onClose()}}>×</button>
+    </div>
+    <div className="mdb">
+      {step===1&&<>
+        <div style={{fontSize:12,color:"var(--slate)",marginBottom:16}}>Step 1 of 3 — Company details</div>
+        <div className="fg"><label>Company Name *</label><input value={biz.company} onChange={e=>setBiz(b=>({...b,company:e.target.value}))} placeholder="e.g. Acme Corp"/></div>
+        <div className="fg"><label>Industry</label><input value={biz.industry} onChange={e=>setBiz(b=>({...b,industry:e.target.value}))} placeholder="e.g. Healthcare, Real Estate, Manufacturing"/></div>
+        <div className="fg"><label>Brand Colour</label><div style={{display:"flex",gap:8,marginTop:5}}>{colors.map(c=><div key={c} onClick={()=>setBiz(b=>({...b,color:c}))} style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",border:biz.color===c?"3px solid var(--ink)":"3px solid transparent",transition:"border .15s"}}/> )}</div></div>
+      </>}
+      {step===2&&<>
+        <div style={{fontSize:12,color:"var(--slate)",marginBottom:16}}>Step 2 of 3 — Business Owner (full access)</div>
+        <div className="g2"><div className="fg"><label>Full Name *</label><input value={owner.name} onChange={e=>setOwner(o=>({...o,name:e.target.value}))} placeholder="Jane Smith"/></div><div className="fg"><label>Email *</label><input value={owner.email} onChange={e=>setOwner(o=>({...o,email:e.target.value}))} placeholder="jane@co.com"/></div></div>
+        <div className="g2"><div className="fg"><label>Username *</label><input value={owner.username} onChange={e=>setOwner(o=>({...o,username:e.target.value}))} placeholder="jane.company"/></div><div className="fg"><label>Password *</label><input value={owner.password} onChange={e=>setOwner(o=>({...o,password:e.target.value}))} placeholder="Set a password"/></div></div>
+      </>}
+      {step===3&&<>
+        <div style={{fontSize:12,color:"var(--slate)",marginBottom:16}}>Step 3 of 3 — Add team members (can view all, edit own assigned items)</div>
+        {members.map((m,i)=><div key={m.id} className="ur"><Avatar name={m.name}/><div style={{flex:1}}><div className="un">{m.name}</div><div className="ue">@{m.username}</div></div><span className="trole tmb">member</span><button className="btn btn-xs bol" onClick={()=>setMembers(ms=>ms.filter((_,j)=>j!==i))}>Remove</button></div>)}
+        <div className="inf" style={{marginTop:members.length?14:0}}>
+          <div style={{fontSize:10,fontWeight:600,color:"var(--slate)",marginBottom:10,textTransform:"uppercase",letterSpacing:".5px"}}>Add Team Member</div>
+          <div className="g2"><div className="fg"><label>Name</label><input value={nm.name} onChange={e=>setNm(m=>({...m,name:e.target.value}))} placeholder="Name"/></div><div className="fg"><label>Email</label><input value={nm.email} onChange={e=>setNm(m=>({...m,email:e.target.value}))} placeholder="email"/></div></div>
+          <div className="g2"><div className="fg"><label>Username</label><input value={nm.username} onChange={e=>setNm(m=>({...m,username:e.target.value}))} placeholder="username"/></div><div className="fg"><label>Password</label><input value={nm.password} onChange={e=>setNm(m=>({...m,password:e.target.value}))} placeholder="password"/></div></div>
+          <button className="btn btn-sm bsage" onClick={addMember}>＋ Add Member</button>
+        </div>
+      </>}
+      {step===4&&done&&<>
+        <div style={{textAlign:"center",marginBottom:18}}><div style={{fontSize:42,marginBottom:8}}>✦</div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600}}>{done.company}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:3}}>{done.users.length} user{done.users.length!==1?"s":""} created</div></div>
+        <div style={{fontSize:10,fontWeight:700,color:"var(--slate)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Share these credentials:</div>
+        <div className="crb">{done.users.map((u,i)=><div key={u.id} style={{marginBottom:i<done.users.length-1?12:0,paddingBottom:i<done.users.length-1?12:0,borderBottom:i<done.users.length-1?"1px solid rgba(255,255,255,.07)":"none"}}><div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginBottom:5}}>{u.name} · <span style={{color:u.role==="owner"?"var(--gold)":"rgba(255,255,255,.3)"}}>{u.role}</span></div><div className="crr"><span className="crl">Username</span><span className="crv">{u.username}</span></div><div className="crr"><span className="crl">Password</span><span className="crv">{u.password}</span></div></div>)}</div>
+      </>}
+    </div>
+    <div className="mdf">
+      {step===1&&<button className="btn bdk" disabled={!biz.company} onClick={()=>setStep(2)}>Next — Owner →</button>}
+      {step===2&&<><button className="btn bdk" disabled={!owner.name||!owner.username||!owner.password} onClick={()=>setStep(3)}>Next — Team →</button><button className="btn bol" onClick={()=>setStep(1)}>← Back</button></>}
+      {step===3&&<><button className="btn bdk" onClick={finish}>✦ Create Client</button><button className="btn bol" onClick={()=>setStep(2)}>← Back</button></>}
+      {step===4&&<button className="btn bdk" onClick={()=>{reset();onClose()}}>Done</button>}
+    </div>
+  </div></div>;
+}
+
+// ─── MANAGE USERS ─────────────────────────────────────────────────────────────
+function ManageUsersModal({open,business,onClose,onUpdate}){
+  const [f,setF]=useState({name:"",email:"",username:"",password:"",role:"member"});
+  if(!open||!business)return null;
+  const add=()=>{if(!f.name||!f.username)return;onUpdate({...business,users:[...business.users,{...f,id:uid()}]});setF({name:"",email:"",username:"",password:"",role:"member"})};
+  return <div className="mo" onClick={onClose}><div className="md" onClick={e=>e.stopPropagation()}>
+    <div className="mdh"><div className="mdt">👥 Users — {business.company}</div><button className="mdc" onClick={onClose}>×</button></div>
+    <div className="mdb">
+      {business.users.map(u=><div key={u.id} className="ur"><Avatar name={u.name}/><div style={{flex:1}}><div className="un">{u.name}</div><div className="ue">{u.email?`${u.email} · `:""} @{u.username}</div></div><span className={`trole ${u.role==="owner"?"tor":"tmb"}`}>{u.role}</span>{u.role!=="owner"&&<button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.3)"}} onClick={()=>onUpdate({...business,users:business.users.filter(x=>x.id!==u.id)})}>Remove</button>}</div>)}
+      <div className="div"/>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:600,marginBottom:12}}>Add New User</div>
+      <div className="g2"><div className="fg"><label>Name</label><input value={f.name} onChange={e=>setF(x=>({...x,name:e.target.value}))}/></div><div className="fg"><label>Email</label><input value={f.email} onChange={e=>setF(x=>({...x,email:e.target.value}))}/></div></div>
+      <div className="g2"><div className="fg"><label>Username</label><input value={f.username} onChange={e=>setF(x=>({...x,username:e.target.value}))}/></div><div className="fg"><label>Password</label><input value={f.password} onChange={e=>setF(x=>({...x,password:e.target.value}))}/></div></div>
+      <div className="fg"><label>Role</label><select value={f.role} onChange={e=>setF(x=>({...x,role:e.target.value}))}><option value="owner">Owner — Full access</option><option value="member">Member — View all, edit own</option></select></div>
+    </div>
+    <div className="mdf"><button className="btn bdk" onClick={add} disabled={!f.name||!f.username}>Add User</button><button className="btn bol" onClick={onClose}>Done</button></div>
+  </div></div>;
+}
+
+// ─── MODULES ──────────────────────────────────────────────────────────────────
+
+function Dashboard({biz,cu}){
+  const onTrack=(biz.rocks||[]).filter(r=>r.status==="on-track").length;
+  const openIss=(biz.issues||[]).filter(i=>i.status==="open").length;
+  const myTodos=(biz.todos||[]).filter(t=>!t.done&&(cu.role==="owner"||t.owner===cu.name));
+  const totalTodos=(biz.todos||[]).length;
+  const doneTodos=(biz.todos||[]).filter(t=>t.done).length;
+  return <div>
+    <div className="wb"><div className="wbt"><h2>Welcome back, {cu.name.split(" ")[0]} 👋</h2><p>{biz.company}{biz.industry?` · ${biz.industry}`:""}</p></div><div style={{fontSize:32,color:"var(--gold)"}}>✦</div></div>
+    <div className="g4" style={{marginBottom:18}}>
+      <div className="sc"><div className="sl">Rocks On Track</div><div className="sv">{onTrack}/{(biz.rocks||[]).length}</div><div className="sn">90-day priorities</div></div>
+      <div className="sc"><div className="sl">Open Issues</div><div className="sv">{openIss}</div><div className="sn">Need resolution</div></div>
+      <div className="sc"><div className="sl">My To-Dos</div><div className="sv">{myTodos.length}</div><div className="sn">Pending this week</div></div>
+      <div className="sc"><div className="sl">To-Do Rate</div><div className="sv">{totalTodos?Math.round(doneTodos/totalTodos*100):0}%</div><div className="sn">Completion</div></div>
+    </div>
+    <div className="g2">
+      <div className="card"><div className="ch"><div className="ct">Rocks</div></div>
+        {!(biz.rocks||[]).length&&<div className="est">No rocks set.</div>}
+        {(biz.rocks||[]).map(r=><div className="ri" key={r.id}><div className={`rd ${r.status==="on-track"?"don":"doff"}`}/><div className="rin"><div className="rt">{r.title}</div><div className="rm">{r.owner} · {r.dueDate}</div><div className="pb"><div className={`pf ${r.status!=="on-track"?"off":""}`} style={{width:`${r.progress}%`}}/></div></div><span className={`bdg ${r.status==="on-track"?"bg":"br"}`}>{r.progress}%</span></div>)}
+      </div>
+      <div className="card"><div className="ch"><div className="ct">My To-Dos</div></div>
+        {!myTodos.length&&<div className="est">You're all caught up! 🎉</div>}
+        {myTodos.map(t=><div className="tdi" key={t.id} style={{cursor:"default"}}><div className="tck"/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{t.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:2}}>Due {t.dueDate}</div></div></div>)}
+      </div>
+    </div>
+    {(biz.headlines||[]).length>0&&<div className="card"><div className="ch"><div className="ct">Latest Headlines</div></div>{(biz.headlines||[]).slice(0,3).map(h=><div className="hl" key={h.id}><Avatar name={h.owner}/><div><div className="hl-text">🎉 {h.text}</div><div className="hl-meta">{h.owner} · {h.date}</div></div></div>)}</div>}
+  </div>;
+}
+
+function BusinessPlan({biz,setBiz,cu}){
+  const [tab,setTab]=useState(0);
+  const plan=biz.plan||{};
+  const canEdit=cu.role==="owner";
+  const upPlan=patch=>setBiz(b=>({...b,plan:{...b.plan,...patch}}));
+
+  const CVSection=()=>{
+    const [adding,setAdding]=useState(false);
+    const [f,setF]=useState({title:"",desc:""});
+    return <div className="vs">
+      <div className="vl">Core Values</div>
+      {(plan.coreValues||[]).map((v,i)=><div key={v.id} style={{display:"flex",gap:10,marginBottom:10,padding:"10px 14px",background:"var(--cream)",borderRadius:8}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:"var(--gold)",minWidth:28}}>{i+1}</div><div><div style={{fontWeight:600,fontSize:13}}>{v.title}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>{v.desc}</div></div></div>)}
+      {canEdit&&<>{adding?<div className="inf"><div className="g2"><div className="fg"><label>Value Title</label><input value={f.title} onChange={e=>setF(x=>({...x,title:e.target.value}))} placeholder="e.g. Integrity First"/></div><div className="fg"><label>Description</label><input value={f.desc} onChange={e=>setF(x=>({...x,desc:e.target.value}))} placeholder="Short description..."/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f.title)return;upPlan({coreValues:[...(plan.coreValues||[]),{id:uid(),...f}]});setF({title:"",desc:""});setAdding(false)}}>Save</button><button className="btn btn-sm bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>:<button className="btn btn-sm bol" onClick={()=>setAdding(true)}>＋ Add Value</button>}</>}
+    </div>;
+  };
+
+  return <div>
+    <div className="tabs">{["Future Focus","Short-Term Focus"].map((t,i)=><button key={i} className={`tab ${tab===i?"on":""}`} onClick={()=>setTab(i)}>{t}</button>)}</div>
+    {tab===0&&<div className="g2">
+      <div>
+        <div className="card"><div className="ch"><div className="ct">Core Identity</div></div>
+          <CVSection/>
+          <div className="vs"><div className="vl">Purpose</div><div className="vv">{plan.purpose||"—"}</div></div>
+          <div className="vs"><div className="vl">Niche</div><div className="vv">{plan.niche||"—"}</div></div>
+        </div>
+        <div className="card"><div className="ch"><div className="ct">BHAG</div><span className="bdg bsl">10-Year</span></div>
+          <div className="vs"><div className="vl">Goal</div><div className="vv" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:600}}>{plan.bhag?.goal||"—"}</div></div>
+          <div className="vs"><div className="vl">Target Date</div><div className="vv">{plan.bhag?.date||"—"}</div></div>
+          <div className="vs"><div className="vl">Narrative</div><div className="vv">{plan.bhag?.narrative||"—"}</div></div>
+        </div>
+      </div>
+      <div>
+        <div className="card"><div className="ch"><div className="ct">3-Year Vision</div><span className="bdg bb">3 Years</span></div>
+          <div className="g2" style={{marginBottom:14}}>
+            <div className="sc"><div className="sl">Revenue Target</div><div className="sv" style={{fontSize:22}}>{plan.threeYear?.revenue||"—"}</div></div>
+            <div className="sc"><div className="sl">Profit Target</div><div className="sv" style={{fontSize:22}}>{plan.threeYear?.profit||"—"}</div></div>
+          </div>
+          <div className="vs"><div className="vl">Measurables</div>{(plan.threeYear?.measurables||[]).map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>)}</div>
+          <div className="vs" style={{marginTop:12}}><div className="vl">Possibilities</div>{(plan.threeYear?.possibilities||[]).map((p,i)=><div key={i} style={{fontSize:12,padding:"3px 0",color:"var(--slate)"}}>• {p}</div>)}</div>
+        </div>
+        {(plan.longTermIssues||[]).length>0&&<div className="card"><div className="ch"><div className="ct">Long-Term Issues</div></div>{plan.longTermIssues.map(i=><div key={i.id} className="ii"><div className="ibar mip"/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{i.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:2}}>{i.owner}</div></div></div>)}</div>}
+      </div>
+    </div>}
+    {tab===1&&<div className="g2">
+      <div className="card"><div className="ch"><div className="ct">1-Year Goals</div><span className="bdg bgold">Annual</span></div>
+        <div className="g2" style={{marginBottom:14}}>
+          <div className="sc"><div className="sl">Revenue</div><div className="sv" style={{fontSize:22}}>{plan.oneYear?.revenue||"—"}</div></div>
+          <div className="sc"><div className="sl">Profit</div><div className="sv" style={{fontSize:22}}>{plan.oneYear?.profit||"—"}</div></div>
+        </div>
+        <div className="vs"><div className="vl">Annual Goals</div>{(plan.oneYear?.goals||[]).map((g,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:8,fontSize:13}}><span style={{color:"var(--gold)",fontWeight:700,minWidth:18}}>{i+1}.</span>{g}</div>)}</div>
+      </div>
+      <div className="card"><div className="ch"><div className="ct">Quarterly Goals</div><span className="bdg bg">This Quarter</span></div>
+        <div className="vs"><div className="vl">Quarter Goal</div><div className="vv" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600}}>{plan.quarterly?.goal||"—"}</div></div>
+        <div className="g2" style={{marginBottom:14}}>
+          <div className="sc"><div className="sl">Revenue</div><div className="sv" style={{fontSize:20}}>{plan.quarterly?.revenue||"—"}</div></div>
+          <div className="sc"><div className="sl">Profit</div><div className="sv" style={{fontSize:20}}>{plan.quarterly?.profit||"—"}</div></div>
+        </div>
+        <div className="vs"><div className="vl">Measurables</div>{(plan.quarterly?.measurables||[]).map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>)}</div>
+      </div>
+    </div>}
+  </div>;
+}
+
+function OrgChart({biz}){
+  const seats=biz.orgChart?.seats||[];
+  const roots=seats.filter(s=>!s.parentId);
+  const childrenOf=id=>seats.filter(s=>s.parentId===id);
+  const Node=({seat,depth=0})=>{
+    const kids=childrenOf(seat.id);
+    return <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <div className={`oc-node ${!seat.parentId?"root":""}`} style={{borderLeft:`3px solid ${biz.color||"var(--gold)"}`}}>
+        <div className="oc-seat">{seat.title}</div>
+        <div className={`oc-person ${seat.person==="Open"?"open":""}`}>{seat.person==="Open"?"— Open —":seat.person}</div>
+        {seat.accountabilities?.length>0&&<div style={{marginTop:8,borderTop:"1px solid var(--mist)",paddingTop:6}}>{seat.accountabilities.map((a,i)=><div key={i} style={{fontSize:10,color:"var(--slate)",marginBottom:2}}>· {a}</div>)}</div>}
+      </div>
+      {kids.length>0&&<><div className="oc-line"/><div className="oc-row">{kids.map((k,i)=><Node key={k.id} seat={k} depth={depth+1}/>)}</div></>}
+    </div>;
+  };
+  return <div className="card"><div className="ch"><div className="ct">Organisational Chart</div><span className="bdg bsl">{seats.length} Seats</span></div>
+    {!seats.length&&<div className="est">No org chart defined yet.</div>}
+    <div className="oc-wrap">{roots.map(r=><Node key={r.id} seat={r}/>)}</div>
+  </div>;
+}
+
+function Rocks({biz,setBiz,cu}){
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({title:"",owner:"",dueDate:"",status:"on-track",progress:0});
+  const canEdit=cu.role==="owner";
+  const save=()=>{if(!f.title)return;setBiz(b=>({...b,rocks:[...(b.rocks||[]),{id:Date.now(),...f,progress:Number(f.progress),milestones:[]}]}));setF({title:"",owner:"",dueDate:"",status:"on-track",progress:0});setAdding(false)};
+  return <div className="card"><div className="ch"><div className="ct">Rocks — 90-Day Priorities</div>{canEdit&&<button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ Add Rock</button>}</div>
+    {adding&&canEdit&&<div className="inf"><div className="g2"><div className="fg"><label>Rock Title</label><input value={f.title} onChange={e=>setF(x=>({...x,title:e.target.value}))} placeholder="What needs to get done?"/></div><div className="fg"><label>Owner</label><select value={f.owner} onChange={e=>setF(x=>({...x,owner:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div></div><div className="g2"><div className="fg"><label>Due Date</label><input type="date" value={f.dueDate} onChange={e=>setF(x=>({...x,dueDate:e.target.value}))}/></div><div className="fg"><label>Status</label><select value={f.status} onChange={e=>setF(x=>({...x,status:e.target.value}))}><option value="on-track">On Track</option><option value="off-track">Off Track</option></select></div></div><div className="fg"><label>Progress %</label><input type="number" min="0" max="100" value={f.progress} onChange={e=>setF(x=>({...x,progress:e.target.value}))}/></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={save}>Save Rock</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!(biz.rocks||[]).length&&<div className="est">No rocks set.</div>}
+    {(biz.rocks||[]).map(rock=><div className="ri" key={rock.id}><div className={`rd ${rock.status==="on-track"?"don":"doff"}`}/><div className="rin"><div className="rt">{rock.title}</div><div className="rm">Owner: {rock.owner} · Due: {rock.dueDate}</div><div className="pb"><div className={`pf ${rock.status!=="on-track"?"off":""}`} style={{width:`${rock.progress}%`}}/></div>{(rock.milestones||[]).length>0&&<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>{rock.milestones.map(m=><span key={m.id} style={{fontSize:10,color:m.done?"var(--sage)":"var(--slate)",textDecoration:m.done?"line-through":"none"}}>{'· '}{m.text}</span>)}</div>}</div><div style={{textAlign:"right"}}><div style={{fontSize:16,fontWeight:700,color:rock.status==="on-track"?"var(--sage)":"var(--rust)"}}>{rock.progress}%</div><span className={`bdg ${rock.status==="on-track"?"bg":"br"}`}>{rock.status==="on-track"?"On Track":"Off Track"}</span></div></div>)}
+  </div>;
+}
+
+function Scorecard({biz,setBiz,cu}){
+  const [tab,setTab]=useState("weekly");
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({metric:"",owner:"",goal:"",goalType:"min",freq:"weekly"});
+  const freqs=["weekly","monthly","quarterly"];
+  const filtered=(biz.scorecard||[]).filter(s=>s.freq===tab);
+  const save=()=>{if(!f.metric)return;setBiz(b=>({...b,scorecard:[...(b.scorecard||[]),{id:Date.now(),...f,values:[]}]}));setF({metric:"",owner:"",goal:"",goalType:"min",freq:"weekly"});setAdding(false)};
+  return <div className="card"><div className="ch"><div className="ct">Scorecard</div>{cu.role==="owner"&&<button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ Add Metric</button>}</div>
+    <div className="tabs" style={{maxWidth:400}}>{freqs.map(fr=><button key={fr} className={`tab ${tab===fr?"on":""}`} onClick={()=>setTab(fr)}>{fr.charAt(0).toUpperCase()+fr.slice(1)}</button>)}</div>
+    {adding&&<div className="inf"><div className="g2"><div className="fg"><label>Metric</label><input value={f.metric} onChange={e=>setF(x=>({...x,metric:e.target.value}))} placeholder="e.g. Weekly Revenue"/></div><div className="fg"><label>Owner</label><select value={f.owner} onChange={e=>setF(x=>({...x,owner:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div></div><div className="g2"><div className="fg"><label>Goal</label><input value={f.goal} onChange={e=>setF(x=>({...x,goal:e.target.value}))} placeholder="e.g. 45000"/></div><div className="fg"><label>Goal Type</label><select value={f.goalType} onChange={e=>setF(x=>({...x,goalType:e.target.value}))}><option value="min">Minimum (≥)</option><option value="max">Maximum (≤)</option></select></div></div><div className="fg"><label>Frequency</label><select value={f.freq} onChange={e=>setF(x=>({...x,freq:e.target.value}))}>{freqs.map(fr=><option key={fr} value={fr}>{fr}</option>)}</select></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={save}>Save</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!filtered.length&&<div className="est">No {tab} metrics yet.</div>}
+    {filtered.length>0&&<div style={{overflowX:"auto"}}><table className="sct">
+      <thead><tr><th>Who</th><th>Metric</th><th>Goal</th><th>Trend</th><th>Avg</th>{filtered[0]?.values.map((v,i)=><th key={i} style={{textAlign:"center"}}>{v.wk}</th>)}<th style={{textAlign:"center"}}>Latest</th></tr></thead>
+      <tbody>{filtered.map(row=>{
+        const last=row.values.length?row.values[row.values.length-1]?.v:null;
+        const avg=row.values.length?Math.round(row.values.reduce((a,b)=>a+b.v,0)/row.values.length):null;
+        const isGood=last!==null?(row.goalType==="min"?last>=Number(row.goal):last<=Number(row.goal)):null;
+        return <tr key={row.id}><td><Avatar name={row.owner}/></td><td style={{fontWeight:500}}>{row.metric}</td><td><span className="bdg bsl">{row.goalType==="min"?"≥":"≤"} {row.goal}</span></td><td><Sparkline values={row.values} goal={row.goal} goalType={row.goalType}/></td><td style={{color:"var(--slate)",fontSize:11}}>{avg!==null?avg.toLocaleString():"—"}</td>{row.values.map((v,i)=>{const g=row.goalType==="min"?v.v>=Number(row.goal):v.v<=Number(row.goal);return <td key={i} style={{textAlign:"center"}}><span className={`wkc ${g?"met":"mss"}`}>{v.v>999?`${(v.v/1000).toFixed(0)}k`:v.v}</span></td>})}<td style={{textAlign:"center"}}>{isGood!==null?<span className={`wkc ${isGood?"met":"mss"}`}>{last!==null?(last>999?`${(last/1000).toFixed(0)}k`:last):"—"}</span>:<span className="wkc mna">—</span>}</td></tr>;
+      })}</tbody>
+    </table></div>}
+  </div>;
+}
+
+function Issues({biz,setBiz,cu}){
+  const [tab,setTab]=useState("short");
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({title:"",owner:"",priority:"medium",type:"short"});
+  const canEdit=i=>cu.role==="owner"||i.owner===cu.name;
+  const add=()=>{if(!f.title)return;setBiz(b=>({...b,issues:[...(b.issues||[]),{id:Date.now(),...f,status:"open",date:today()}]}));setF({title:"",owner:"",priority:"medium",type:"short"});setAdding(false)};
+  const toggle=id=>setBiz(b=>({...b,issues:b.issues.map(i=>i.id===id&&canEdit(i)?{...i,status:i.status==="open"?"solved":"open"}:i)}));
+  const views={short:(biz.issues||[]).filter(i=>i.type==="short"&&i.status==="open"),long:(biz.issues||[]).filter(i=>i.type==="long"&&i.status==="open"),solved:(biz.issues||[]).filter(i=>i.status==="solved")};
+  const cur=views[tab]||[];
+  return <div className="card"><div className="ch"><div className="ct">Issues (IDS)</div><button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ Add Issue</button></div>
+    <div className="tabs">{[["short","Short Term"],["long","Long Term"],["solved","Solved"]].map(([v,l])=><button key={v} className={`tab ${tab===v?"on":""}`} onClick={()=>setTab(v)}>{l} {views[v].length>0&&`(${views[v].length})`}</button>)}</div>
+    {adding&&<div className="inf"><div className="g2"><div className="fg"><label>Issue</label><input value={f.title} onChange={e=>setF(x=>({...x,title:e.target.value}))} placeholder="Describe the issue"/></div><div className="fg"><label>Owner</label><select value={f.owner} onChange={e=>setF(x=>({...x,owner:e.target.value}))}><option value="">Assign to...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div></div><div className="g2"><div className="fg"><label>Priority</label><select value={f.priority} onChange={e=>setF(x=>({...x,priority:e.target.value}))}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div><div className="fg"><label>Type</label><select value={f.type} onChange={e=>setF(x=>({...x,type:e.target.value}))}><option value="short">Short Term</option><option value="long">Long Term</option></select></div></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={add}>Add Issue</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!cur.length&&<div className="est">No {tab} issues.</div>}
+    {cur.map(issue=><div className="ii" key={issue.id}><div className={`ibar ${issue.priority==="high"?"hip":issue.priority==="medium"?"mip":"lip"}`}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{issue.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:2}}>{issue.owner} · {issue.date}</div></div><span className={`bdg ${issue.priority==="high"?"br":issue.priority==="medium"?"bgold":"bsl"}`} style={{marginRight:8}}>{issue.priority}</span>{canEdit(issue)&&<button className="btn btn-xs bol" onClick={()=>toggle(issue.id)}>{tab==="solved"?"Reopen":"Solve"}</button>}</div>)}
+  </div>;
+}
+
+function Todos({biz,setBiz,cu,onRemind}){
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({title:"",owner:"",dueDate:""});
+  const canToggle=t=>cu.role==="owner"||t.owner===cu.name;
+  const visible=(biz.todos||[]).filter(t=>cu.role==="owner"||t.owner===cu.name);
+  const add=()=>{if(!f.title)return;setBiz(b=>({...b,todos:[...(b.todos||[]),{id:Date.now(),...f,done:false}]}));setF({title:"",owner:"",dueDate:""});setAdding(false)};
+  const toggle=id=>setBiz(b=>({...b,todos:b.todos.map(t=>t.id===id&&canToggle(t)?{...t,done:!t.done}:t)}));
+  const pct=visible.length?Math.round(visible.filter(t=>t.done).length/visible.length*100):0;
+  return <div className="card"><div className="ch"><div className="ct">To-Dos</div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bol" onClick={onRemind}>📧 Reminders</button><button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ Add</button></div></div>
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}><div style={{flex:1,height:5,background:"var(--mist)",borderRadius:3}}><div style={{height:"100%",width:`${pct}%`,background:"var(--sage)",borderRadius:3,transition:"width .3s"}}/></div><span style={{fontSize:12,fontWeight:600,color:"var(--slate)"}}>{pct}% done</span></div>
+    {adding&&<div className="inf"><div className="g2"><div className="fg"><label>Task</label><input value={f.title} onChange={e=>setF(x=>({...x,title:e.target.value}))} placeholder="What needs doing?"/></div><div className="fg"><label>Assign To</label><select value={f.owner} onChange={e=>setF(x=>({...x,owner:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div></div><div className="fg"><label>Due Date</label><input type="date" value={f.dueDate} onChange={e=>setF(x=>({...x,dueDate:e.target.value}))}/></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={add}>Save</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!visible.length&&<div className="est">No to-dos yet.</div>}
+    {visible.map(t=><div className="tdi" key={t.id} onClick={()=>canToggle(t)&&toggle(t.id)}><div className={`tck ${t.done?"dn":""}`}>{t.done?"✓":""}</div><div style={{flex:1}}><div style={{fontSize:13,fontWeight:500,textDecoration:t.done?"line-through":"none",color:t.done?"var(--slate)":"var(--ink)"}}>{t.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:1}}>{t.owner} · Due {t.dueDate}</div></div>{t.done&&<span className="bdg bg">Done</span>}</div>)}
+  </div>;
+}
+
+function Headlines({biz,setBiz,cu}){
+  const [f,setF]=useState({text:""});
+  const add=()=>{if(!f.text)return;setBiz(b=>({...b,headlines:[{id:Date.now(),owner:cu.name,text:f.text,date:today()},...(b.headlines||[])]}));setF({text:""})};
+  return <div className="card"><div className="ch"><div className="ct">Headlines</div></div>
+    <div style={{display:"flex",gap:8,marginBottom:16}}><input value={f.text} onChange={e=>setF({text:e.target.value})} placeholder="Share a win or update..." style={{flex:1,padding:"9px 12px",border:"1.5px solid var(--mist)",borderRadius:7,fontFamily:"'DM Sans',sans-serif",fontSize:13,color:"var(--ink)"}}/><button className="btn bdk" onClick={add}>Post</button></div>
+    {!(biz.headlines||[]).length&&<div className="est">No headlines yet.</div>}
+    {(biz.headlines||[]).map(h=><div className="hl" key={h.id}><Avatar name={h.owner}/><div><div className="hl-text">🎉 {h.text}</div><div className="hl-meta">{h.owner} · {h.date}</div></div></div>)}
+  </div>;
+}
+
+function MeetingPulse({biz,setBiz,onSendSummary}){
+  const [tab,setTab]=useState("notes");
+  const [adding,setAdding]=useState(false);
+  const [running,setRunning]=useState(null);
+  const [segIdx,setSegIdx]=useState(0);
+  const [secs,setSecs]=useState(0);
+  const [timerOn,setTimerOn]=useState(false);
+  const [f,setF]=useState({date:"",attendees:"",segue:"",headlines:"",rocks:"",issues:"",todos:"",rating:8});
+  const timerRef=useRef();
+
+  useEffect(()=>{if(timerOn){timerRef.current=setInterval(()=>setSecs(s=>s+1),1000)}else clearInterval(timerRef.current);return()=>clearInterval(timerRef.current)},[timerOn]);
+
+  const SEGS=[{name:"Check-in",mins:5},{name:"Goals Review",mins:5},{name:"Metrics Review",mins:5},{name:"Headlines",mins:5},{name:"To-dos Review",mins:5},{name:"Issues (IDS)",mins:60},{name:"Wrap-up & Rating",mins:5}];
+  const fmt=s=>`${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+  const save=()=>{setBiz(b=>({...b,meetingNotes:[...(b.meetingNotes||[]),{id:Date.now(),type:"L10",...f,emailSent:false}]}));setF({date:"",attendees:"",segue:"",headlines:"",rocks:"",issues:"",todos:"",rating:8});setAdding(false)};
+
+  return <div>
+    <div className="tabs">{[["notes","Meeting Notes"],["runner","Run L10"]].map(([v,l])=><button key={v} className={`tab ${tab===v?"on":""}`} onClick={()=>setTab(v)}>{l}</button>)}</div>
+    {tab==="notes"&&<><div className="card"><div className="ch"><div className="ct">L10 Meeting Notes</div><button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ New Meeting</button></div>
+      {adding&&<div className="inf"><div className="g2"><div className="fg"><label>Date</label><input type="date" value={f.date} onChange={e=>setF(x=>({...x,date:e.target.value}))}/></div><div className="fg"><label>Attendees</label><input value={f.attendees} onChange={e=>setF(x=>({...x,attendees:e.target.value}))} placeholder="Who attended?"/></div></div>{["segue","headlines","rocks","issues","todos"].map(field=><div key={field} className="fg"><label>{field.charAt(0).toUpperCase()+field.slice(1)}</label><textarea value={f[field]} onChange={e=>setF(x=>({...x,[field]:e.target.value}))} placeholder={`Notes on ${field}...`} style={{minHeight:52}}/></div>)}<div className="fg"><label>Meeting Rating (1–10)</label><input type="number" min="1" max="10" value={f.rating} onChange={e=>setF(x=>({...x,rating:Number(e.target.value)}))}/></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={save}>Save Notes</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+      {!(biz.meetingNotes||[]).length&&!adding&&<div className="est">No meeting notes yet.</div>}
+      {(biz.meetingNotes||[]).map(note=><div className="mn" key={note.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:11,fontWeight:700,color:"var(--slate)",textTransform:"uppercase",letterSpacing:.5}}>{note.type} · {note.date}</div><div style={{display:"flex",gap:6,alignItems:"center"}}>{note.emailSent&&<span className="bdg bg">✓ Sent</span>}{note.rating&&<span className="bdg bsl">⭐ {note.rating}/10</span>}<button className="btn btn-xs bol" onClick={()=>onSendSummary(note)}>📧 Summary</button></div></div>{[["Attendees",note.attendees],["Segue",note.segue],["Headlines",note.headlines],["Rocks",note.rocks],["Issues",note.issues],["To-Dos",note.todos]].filter(([,v])=>v).map(([k,v])=><div className="mr" key={k}><div className="mk">{k}</div><div className="mv">{v}</div></div>)}</div>)}
+    </div></>}
+    {tab==="runner"&&<div className="card"><div className="ch"><div className="ct">L10 Meeting Runner</div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bsage" onClick={()=>setTimerOn(t=>!t)}>{timerOn?"⏸ Pause":"▶ Start"}</button><button className="btn btn-sm bol" onClick={()=>{setSecs(0);setTimerOn(false);setSegIdx(0)}}>Reset</button></div></div>
+      <div className="timer" style={{color:secs>SEGS[segIdx]?.mins*60?"var(--rust)":"var(--ink)"}}>{fmt(secs)}</div>
+      <div style={{fontSize:12,textAlign:"center",color:"var(--slate)",marginBottom:18}}>Segment {segIdx+1} of {SEGS.length} — {SEGS[segIdx]?.name} · {SEGS[segIdx]?.mins} min suggested</div>
+      <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:20}}>
+        <button className="btn bol" disabled={segIdx===0} onClick={()=>{setSegIdx(i=>i-1);setSecs(0)}}>← Prev</button>
+        <button className="btn bdk" disabled={segIdx===SEGS.length-1} onClick={()=>{setSegIdx(i=>i+1);setSecs(0)}}>Next Segment →</button>
+      </div>
+      {SEGS.map((seg,i)=><div key={i} className={`mr-seg ${i===segIdx?"cur":""}`}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div className="mr-sname">{seg.name}</div><div className="mr-sdur">{seg.mins} min suggested</div></div>{i<segIdx&&<span className="bdg bg">✓ Done</span>}{i===segIdx&&<span className="bdg bgold">● Active</span>}</div></div>)}
+    </div>}
+  </div>;
+}
+
+function RPRS({biz,setBiz,cu}){
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({employee:"",seat:"",getsIt:true,wantsIt:true,hasCapacity:true,cvFit:5,notes:""});
+  const canEdit=cu.role==="owner";
+  const add=()=>{if(!f.employee)return;setBiz(b=>({...b,rprs:[...(b.rprs||[]),{id:Date.now(),...f}]}));setF({employee:"",seat:"",getsIt:true,wantsIt:true,hasCapacity:true,cvFit:5,notes:""});setAdding(false)};
+  const GWC=({val,onChange,label})=><div style={{marginBottom:12}}><div style={{fontSize:10,fontWeight:600,letterSpacing:.8,textTransform:"uppercase",color:"var(--slate)",marginBottom:5}}>{label}</div><div className="gwc"><div className={`gwcb ${val?"y":"n"}`} onClick={()=>canEdit&&onChange(true)}>G</div><div className={`gwcb ${!val?"y":"n"}`} style={{opacity:.5}} onClick={()=>canEdit&&onChange(false)}>✗</div></div></div>;
+  return <div className="card"><div className="ch"><div className="ct">Right Person Right Seat</div>{canEdit&&<button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ Add Assessment</button>}</div>
+    {adding&&canEdit&&<div className="inf"><div className="g2"><div className="fg"><label>Employee</label><select value={f.employee} onChange={e=>setF(x=>({...x,employee:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div><div className="fg"><label>Seat / Role</label><input value={f.seat} onChange={e=>setF(x=>({...x,seat:e.target.value}))} placeholder="e.g. Head of Sales"/></div></div><div className="g2"><GWC val={f.getsIt} onChange={v=>setF(x=>({...x,getsIt:v}))} label="Gets It"/><GWC val={f.wantsIt} onChange={v=>setF(x=>({...x,wantsIt:v}))} label="Wants It"/></div><GWC val={f.hasCapacity} onChange={v=>setF(x=>({...x,hasCapacity:v}))} label="Has Capacity"/><div className="fg"><label>Core Values Fit (1–5)</label><input type="number" min="1" max="5" value={f.cvFit} onChange={e=>setF(x=>({...x,cvFit:Number(e.target.value)}))}/></div><div className="fg"><label>Notes</label><textarea value={f.notes} onChange={e=>setF(x=>({...x,notes:e.target.value}))} style={{minHeight:56}}/></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={add}>Save</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!(biz.rprs||[]).length&&<div className="est">No assessments yet.</div>}
+    <div className="g2">{(biz.rprs||[]).map(r=>{const rp=r.getsIt&&r.wantsIt&&r.hasCapacity;return <div key={r.id} style={{background:"var(--cream)",borderRadius:8,padding:14}}><div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}><Avatar name={r.employee}/><div><div style={{fontWeight:600,fontSize:13}}>{r.employee}</div><div style={{fontSize:11,color:"var(--slate)"}}>{r.seat}</div></div><span className={`bdg ${rp?"bg":"br"}`} style={{marginLeft:"auto"}}>{rp?"✓ RPRS":"⚠ Review"}</span></div><div style={{display:"flex",gap:8,marginBottom:8}}>{[["G",r.getsIt],["W",r.wantsIt],["C",r.hasCapacity]].map(([l,v])=><div key={l} className={`gwcb ${v?"y":"n"}`} style={{cursor:"default"}}>{l}</div>)}</div><div style={{fontSize:11,color:"var(--slate)"}}>CV Fit: {"★".repeat(r.cvFit)}{"☆".repeat(5-r.cvFit)}</div>{r.notes&&<div style={{fontSize:11,color:"var(--slate)",marginTop:6,fontStyle:"italic"}}>{r.notes}</div>}</div>})}</div>
+  </div>;
+}
+
+function OneOnOnes({biz,setBiz,cu}){
+  const [adding,setAdding]=useState(false);
+  const [f,setF]=useState({employee:"",manager:"",date:"",quarter:"",highlights:"",challenges:"",goals:"",rating:4});
+  const canEdit=cu.role==="owner";
+  const add=()=>{if(!f.employee)return;setBiz(b=>({...b,oneOnOnes:[...(b.oneOnOnes||[]),{id:Date.now(),...f,archived:false}]}));setF({employee:"",manager:"",date:"",quarter:"",highlights:"",challenges:"",goals:"",rating:4});setAdding(false)};
+  return <div className="card"><div className="ch"><div className="ct">Quarterly 1:1s</div>{canEdit&&<button className="btn btn-sm bdk" onClick={()=>setAdding(!adding)}>＋ New 1:1</button>}</div>
+    {adding&&canEdit&&<div className="inf"><div className="g2"><div className="fg"><label>Employee</label><select value={f.employee} onChange={e=>setF(x=>({...x,employee:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div><div className="fg"><label>Manager</label><select value={f.manager} onChange={e=>setF(x=>({...x,manager:e.target.value}))}><option value="">Select...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div></div><div className="g2"><div className="fg"><label>Date</label><input type="date" value={f.date} onChange={e=>setF(x=>({...x,date:e.target.value}))}/></div><div className="fg"><label>Quarter</label><input value={f.quarter} onChange={e=>setF(x=>({...x,quarter:e.target.value}))} placeholder="e.g. Q1 2025"/></div></div>{["highlights","challenges","goals"].map(field=><div key={field} className="fg"><label>{field.charAt(0).toUpperCase()+field.slice(1)}</label><textarea value={f[field]} onChange={e=>setF(x=>({...x,[field]:e.target.value}))} style={{minHeight:52}}/></div>)}<div className="fg"><label>Rating (1–5)</label><input type="number" min="1" max="5" value={f.rating} onChange={e=>setF(x=>({...x,rating:Number(e.target.value)}))}/></div><div style={{display:"flex",gap:8}}><button className="btn bdk" onClick={add}>Save 1:1</button><button className="btn bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>}
+    {!(biz.oneOnOnes||[]).length&&<div className="est">No 1:1 reviews yet.</div>}
+    {(biz.oneOnOnes||[]).map(o=><div key={o.id} style={{background:"var(--cream)",borderRadius:8,padding:14,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><div style={{fontWeight:600,fontSize:13}}>{o.employee} ↔ {o.manager}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:1}}>{o.quarter} · {o.date}</div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span className="bdg bsl">{"★".repeat(o.rating)}</span></div></div>{[["Highlights",o.highlights],["Challenges",o.challenges],["Goals",o.goals]].filter(([,v])=>v).map(([k,v])=><div className="mr" key={k}><div className="mk">{k}</div><div className="mv">{v}</div></div>)}</div>)}
+  </div>;
+}
+
+// ─── COACH OVERVIEW ───────────────────────────────────────────────────────────
+function CoachOverview({businesses,onSelect,onAdd,onUsers}){
+  return <div>
+    <div className="wb"><div className="wbt"><h2>Coach Dashboard ✦</h2><p>{Object.keys(businesses).length} active business clients</p></div><button className="btn bdk" onClick={onAdd}>＋ Add Business Client</button></div>
+    <div className="g3">{Object.values(businesses).map(biz=>{
+      const onTrack=(biz.rocks||[]).filter(r=>r.status==="on-track").length;
+      const openIss=(biz.issues||[]).filter(i=>i.status==="open").length;
+      return <div key={biz.id} className="cc" onClick={()=>onSelect(biz)}>
+        <div style={{position:"absolute",left:0,top:0,bottom:0,width:4,background:biz.color,borderRadius:"10px 0 0 10px"}}/>
+        <div className="cn">{biz.company}</div>
+        <div className="csub">{biz.industry||"Business"} · {biz.users.length} user{biz.users.length!==1?"s":""}</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+          <span className="bdg bg">{onTrack}/{(biz.rocks||[]).length} Rocks</span>
+          <span className="bdg br">{openIss} Issues</span>
+          <span className="bdg bsl">{(biz.todos||[]).filter(t=>!t.done).length} To-Dos</span>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button className="btn btn-xs bol" onClick={e=>{e.stopPropagation();onUsers(biz)}}>👥 Users</button>
+          <button className="btn btn-xs bdk" onClick={e=>{e.stopPropagation();onSelect(biz)}}>Dashboard →</button>
+        </div>
+      </div>;
+    })}</div>
+  </div>;
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+export default function App(){
+  const [businesses,setBusinesses]=useState(SEED);
+  const [user,setUser]=useState(null);
+  const [lf,setLf]=useState({username:"",password:""});
+  const [lerr,setLerr]=useState("");
+  const [tab,setTab]=useState("dashboard");
+  const [bizId,setBizId]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [manageId,setManageId]=useState(null);
+  const [email,setEmail]=useState({open:false,title:"",content:"",loading:false});
+  const [notifs,setNotifs]=useState([]);
+
+  const login=()=>{
+    if(lf.username===COACH.username&&lf.password===COACH.password){setUser(COACH);setTab("clients");return}
+    for(const biz of Object.values(businesses)){const u=biz.users.find(u=>u.username===lf.username&&u.password===lf.password);if(u){setUser({...u,bizId:biz.id});setBizId(biz.id);setTab("dashboard");return}}
+    setLerr("Invalid username or password.");
+  };
+
+  const isCoach=user?.role==="coach";
+  const biz=bizId?businesses[bizId]:null;
+  const manageBiz=manageId?businesses[manageId]:null;
+
+  const setBiz=upd=>setBusinesses(p=>{const u=typeof upd==="function"?upd(p[bizId]):upd;return{...p,[bizId]:u}});
+  const addNotif=(title,body)=>setNotifs(n=>[{id:uid(),title,body,read:false},...n]);
+
+  const sendSummary=async note=>{
+    setEmail({open:true,title:"AI Meeting Summary",content:"",loading:true});
+    const b=biz,owner=b.users.find(u=>u.role==="owner");
+    const txt=await aiGenerate(`You are an EOS business coach. Write a professional L10 meeting summary email for ${owner?.name||"the team"} at ${b.company}.\n\nMeeting: ${note.date}\nAttendees: ${note.attendees}\nSegue: ${note.segue}\nHeadlines: ${note.headlines}\nRocks: ${note.rocks}\nIssues: ${note.issues}\nTo-Dos: ${note.todos}\nRating: ${note.rating}/10\n\nInclude Subject line, warm professional body, key takeaways as bullets, and next steps. Sign off as "Your EOS Coach".`);
+    setEmail({open:true,title:"AI Meeting Summary",content:txt,loading:false});
+    setBiz(b=>({...b,meetingNotes:b.meetingNotes.map(n=>n.id===note.id?{...n,emailSent:true}:n)}));
+    addNotif("Meeting Summary Ready",`L10 summary for ${biz.company} on ${note.date}`);
+  };
+
+  const sendReminders=async()=>{
+    setEmail({open:true,title:"AI To-Do Reminders",content:"",loading:true});
+    const b=biz,pending=(b.todos||[]).filter(t=>!t.done);
+    const byP={};for(const t of pending){if(!byP[t.owner])byP[t.owner]=[];byP[t.owner].push(t)}
+    const txt=await aiGenerate(`You are an EOS business coach. Write encouraging To-Do reminder emails for the team at ${b.company}.\n\nPending items:\n${Object.entries(byP).map(([name,ts])=>`${name}:\n${ts.map(t=>`  - "${t.title}" (due ${t.dueDate})`).join("\n")}`).join("\n\n")}\n\nWrite a separate short warm email per person, separated by ---. Use EOS language. Sign off as "Your EOS Coach".`);
+    setEmail({open:true,title:"AI To-Do Reminders",content:txt,loading:false});
+    addNotif("Reminders Ready",`Generated for ${Object.keys(byP).length} team member(s) at ${biz.company}`);
+  };
+
+  const NAV=[
+    {id:"dashboard",label:"Dashboard",icon:"🧭",section:""},
+    {id:"plan",label:"Business Plan",icon:"📋",section:""},
+    {id:"orgchart",label:"Org Chart",icon:"🏗",section:""},
+    {id:"rocks",label:"Rocks",icon:"⬡",section:""},
+    {id:"scorecard",label:"Scorecard",icon:"▦",section:""},
+    {id:"issues",label:"Issues (IDS)",icon:"◈",section:""},
+    {id:"todos",label:"To-Dos",icon:"☑",section:""},
+    {id:"headlines",label:"Headlines",icon:"📰",section:""},
+    {id:"meeting",label:"Meeting Pulse",icon:"◉",section:""},
+    {id:"rprs",label:"Right Person Right Seat",icon:"👤",section:"Tools"},
+    {id:"oneonones",label:"Quarterly 1:1s",icon:"🤝",section:"Tools"},
+  ];
+  const TITLES={dashboard:"Dashboard",plan:"Business Plan",orgchart:"Org Chart",rocks:"Rocks",scorecard:"Scorecard",issues:"Issues (IDS)",todos:"To-Dos",headlines:"Headlines",meeting:"Meeting Pulse",rprs:"Right Person Right Seat",oneonones:"Quarterly 1:1s",clients:"All Clients"};
+
+  if(!user) return <>
+    <style>{CSS}</style>
+    <div className="login">
+      <div className="ll">
+        <div className="orb" style={{width:380,height:380,top:"5%",left:"-15%"}}/>
+        <div className="orb" style={{width:200,height:200,bottom:"12%",right:"-5%"}}/>
+        <div className="logo">Compass</div>
+        <div className="logo-sub">EOS Business Intelligence</div>
+      </div>
+      <div className="lr"><div className="lf">
+        <h2>Welcome back</h2>
+        <p>Sign in to your coaching dashboard</p>
+        <div className="fi"><label>Username</label><input value={lf.username} onChange={e=>setLf(f=>({...f,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter username"/></div>
+        <div className="fi"><label>Password</label><input type="password" value={lf.password} onChange={e=>setLf(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter password"/></div>
+        {lerr&&<div className="err">{lerr}</div>}
+        <button className="btn-login" onClick={login}>Sign In →</button>
+        <div className="hint"><strong>Demo logins:</strong><br/>Coach: <strong>coach</strong> / coach123<br/>Owner: <strong>sarah.acme</strong> / acme123<br/>Member: <strong>james.acme</strong> / acme456<br/>Owner: <strong>james.vertex</strong> / vertex123</div>
+      </div></div>
+    </div>
+  </>;
+
+  const dispRole=isCoach?"Coach":user.role==="owner"?`Owner · ${biz?.company||""}`:`Member · ${biz?.company||""}`;
+  let section="";
+
+  return <>
+    <style>{CSS}</style>
+    <AddClientModal open={showAdd} onClose={()=>setShowAdd(false)} onAdd={nb=>setBusinesses(b=>({...b,[nb.id]:nb}))}/>
+    <ManageUsersModal open={!!manageBiz} business={manageBiz} onClose={()=>setManageId(null)} onUpdate={ub=>setBusinesses(b=>({...b,[ub.id]:ub}))}/>
+    <EmailModal open={email.open} onClose={()=>setEmail(e=>({...e,open:false}))} title={email.title} content={email.content} loading={email.loading}/>
+    <div className="app">
+      <div className="sb">
+        <div className="sb-brand"><div className="sb-logo">Compass</div><div className="sb-sub">EOS Platform</div></div>
+        <div className="sb-user"><div className="sb-uname">{user.name}</div><div className="sb-urole">{dispRole}</div></div>
+        <nav className="sb-nav">
+          {isCoach&&<><div className="ns">Coach</div>
+            <div className={`ni ${tab==="clients"?"on":""}`} onClick={()=>{setTab("clients");setBizId(null)}}>◐ All Clients</div>
+            <div className="ni" onClick={()=>setShowAdd(true)}>＋ Add Client</div>
+          </>}
+          {biz&&<>{isCoach&&<div className="ns">{biz.company}</div>}
+            {!isCoach&&<div className="ns">Navigation</div>}
+            {NAV.map(item=>{
+              const hdr=item.section&&item.section!==section;if(hdr)section=item.section;
+              return <span key={item.id}>{hdr&&<div className="ns">{item.section}</div>}<div className={`ni ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}><span>{item.icon}</span>{item.label}</div></span>;
+            })}
+            {isCoach&&<div className="ni" style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,.07)",paddingTop:12}} onClick={()=>{setBizId(null);setTab("clients")}}>← All Clients</div>}
+          </>}
+        </nav>
+        <div className="sb-footer"><button className="lout" onClick={()=>{setUser(null);setBizId(null);setTab("dashboard");setLf({username:"",password:""});}}>⇤ Sign out</button></div>
+      </div>
+      <div className="main">
+        <div className="topbar">
+          <div><div className="pt">{TITLES[tab]||"Dashboard"}</div>{biz&&isCoach&&<div className="ps">Viewing: {biz.company}</div>}</div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {biz&&isCoach&&<button className="btn btn-sm bol" onClick={()=>setManageId(biz.id)}>👥 Users</button>}
+            <Notif notifs={notifs} onClear={()=>setNotifs([])}/>
+          </div>
+        </div>
+        <div className="content">
+          {tab==="clients"&&isCoach&&<CoachOverview businesses={businesses} onSelect={b=>{setBizId(b.id);setTab("dashboard")}} onAdd={()=>setShowAdd(true)} onUsers={b=>setManageId(b.id)}/>}
+          {biz&&tab==="dashboard"&&<Dashboard biz={biz} cu={user}/>}
+          {biz&&tab==="plan"&&<BusinessPlan biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="orgchart"&&<OrgChart biz={biz}/>}
+          {biz&&tab==="rocks"&&<Rocks biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="scorecard"&&<Scorecard biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="issues"&&<Issues biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="todos"&&<Todos biz={biz} setBiz={setBiz} cu={user} onRemind={sendReminders}/>}
+          {biz&&tab==="headlines"&&<Headlines biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="meeting"&&<MeetingPulse biz={biz} setBiz={setBiz} onSendSummary={sendSummary}/>}
+          {biz&&tab==="rprs"&&<RPRS biz={biz} setBiz={setBiz} cu={user}/>}
+          {biz&&tab==="oneonones"&&<OneOnOnes biz={biz} setBiz={setBiz} cu={user}/>}
+        </div>
+      </div>
+    </div>
+  </>;
+}
