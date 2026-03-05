@@ -107,42 +107,53 @@ async function aiGenerate(prompt) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --ink:#111210;--paper:#f8f7f4;--cream:#f0ede6;--gold:#b8953a;--gold-l:#e6d5a0;
-  --sage:#6b9e72;--rust:#bb4d38;--slate:#4f5a6a;--mist:#dedad3;--white:#ffffff;
-  --sh:rgba(17,18,16,0.07);--blue:#3d7ab5;--pur:#6b5fad;
+  --ink:#1a1f36;--paper:#f0f2f8;--cream:#e4e8f4;--gold:#5af47e;--gold-l:#a8f7bc;--gold-d:#2ec455;
+  --sage:#5af47e;--rust:#e05252;--slate:#6b7a99;--mist:#d0d5e8;--white:#ffffff;
+  --navy:#272b47;--charcoal:#1e2240;--offwhite:#f5f7fc;--dark:#26304b;--darkest:#1a1f3a;
+  --sh:rgba(26,31,54,0.12);--blue:#4d6ef5;--pur:#6b5fce;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px}
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);font-size:14px}
 
 /* LOGIN */
-.login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-.ll{background:linear-gradient(155deg,#14160f 0%,#1d2218 60%,#111210 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px;position:relative;overflow:hidden}
-.ll::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 25% 55%,rgba(184,149,58,.18) 0%,transparent 55%)}
-.orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(184,149,58,.12) 0%,transparent 70%);pointer-events:none}
-.logo{font-family:'Cormorant Garamond',serif;font-size:58px;font-weight:700;color:var(--gold);letter-spacing:-1px;position:relative;z-index:1;line-height:1}
-.logo-sub{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:3.5px;text-transform:uppercase;margin-top:12px;position:relative;z-index:1}
-.lr{background:var(--paper);display:flex;align-items:center;justify-content:center;padding:60px}
-.lf{width:100%;max-width:380px}
-.lf h2{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;margin-bottom:6px}
-.lf>p{color:var(--slate);font-size:13px;margin-bottom:30px}
-.fi{margin-bottom:16px}
-.fi label{display:block;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
-.fi input{width:100%;padding:12px 14px;border:1.5px solid var(--mist);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--white);color:var(--ink);transition:border-color .2s,box-shadow .2s}
-.fi input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,149,58,.12)}
-.btn-login{width:100%;padding:13px;background:var(--ink);color:var(--gold);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:background .2s}
-.btn-login:hover{background:#222}
-.hint{margin-top:20px;padding:13px 15px;background:var(--cream);border-radius:8px;font-size:11px;color:var(--slate);line-height:1.8}
+.login{min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr}
+.ll{background:var(--darkest);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:72px 68px;position:relative;overflow:hidden}
+.ll::before{content:'';position:absolute;inset:0;background:linear-gradient(150deg,#1a1f3a 0%,#222847 60%,#1e2240 100%)}
+.ll::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(90,244,126,.7) 40%,rgba(90,244,126,.7) 60%,transparent 100%)}
+.ll-geo{position:absolute;top:-100px;right:-100px;width:480px;height:480px;border:1px solid rgba(90,244,126,.07);border-radius:50%;pointer-events:none}
+.ll-geo2{position:absolute;top:-40px;right:-40px;width:320px;height:320px;border:1px solid rgba(90,244,126,.05);border-radius:50%;pointer-events:none}
+.ll-geo3{position:absolute;bottom:40px;left:-80px;width:240px;height:240px;border:1px solid rgba(90,244,126,.04);border-radius:50%;pointer-events:none}
+.ll-rule{width:36px;height:2px;background:var(--gold);margin-bottom:32px;position:relative;z-index:1;border-radius:1px}
+.logo{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:4px;text-transform:uppercase;position:relative;z-index:1;line-height:1;margin-bottom:18px}
+.logo-name{font-family:'Inter',sans-serif;font-size:34px;font-weight:800;color:var(--white);letter-spacing:-.5px;position:relative;z-index:1;line-height:1.2}
+.logo-name span{color:var(--gold)}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;margin-top:18px;position:relative;z-index:1;font-weight:500}
+.logo-loc{font-size:9px;color:rgba(90,244,126,.55);letter-spacing:1.5px;text-transform:uppercase;margin-top:8px;position:relative;z-index:1;font-weight:500}
+.logo-ver{position:absolute;bottom:26px;left:68px;font-size:9px;color:rgba(255,255,255,.18);letter-spacing:2px;text-transform:uppercase;z-index:1;font-family:'Inter',sans-serif}
+.lr{background:var(--offwhite);display:flex;align-items:center;justify-content:center;padding:64px;border-left:1px solid rgba(90,244,126,.08)}
+.lf{width:100%;max-width:350px}
+.lf h2{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:6px;color:var(--ink)}
+.lf>p{color:var(--slate);font-size:12.5px;margin-bottom:28px;line-height:1.5}
+.fi{margin-bottom:15px}
+.fi label{display:block;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+.fi input{width:100%;padding:11px 13px;border:1.5px solid var(--mist);border-radius:5px;font-family:'Inter',sans-serif;font-size:13.5px;background:var(--white);color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.fi input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(90,244,126,.12)}
+.btn-login{width:100%;padding:12px;background:var(--navy);color:var(--gold);border:none;border-radius:5px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;transition:all .2s;letter-spacing:.4px}
+.btn-login:hover{background:var(--dark);box-shadow:0 4px 18px rgba(26,31,54,.3)}
+.hint{margin-top:18px;padding:12px 14px;background:var(--cream);border-radius:5px;border:1px solid rgba(90,244,126,.15);font-size:11px;color:var(--slate);line-height:1.9}
 .hint strong{color:var(--ink)}
 .err{color:var(--rust);font-size:12px;margin-top:6px}
 
 /* SHELL */
 .app{display:flex;min-height:100vh}
-.sb{width:248px;min-height:100vh;background:var(--ink);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto}
-.sb-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
-.sb-logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold)}
-.sb-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.sb{width:252px;min-height:100vh;background:var(--darkest);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto;border-right:1px solid rgba(90,244,126,.07)}
+.sb-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(90,244,126,.07)}
+.sb-logo{font-family:'Inter',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:3px;text-transform:uppercase}
+.sb-name{font-family:'Inter',sans-serif;font-size:15px;font-weight:800;color:var(--white);margin-top:4px;line-height:1.3}
+.sb-name span{color:var(--gold)}
+.sb-sub{font-size:8.5px;color:rgba(90,244,126,.4);letter-spacing:2px;text-transform:uppercase;margin-top:5px}
 .sb-user{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.07)}
 .sb-uname{font-size:12.5px;font-weight:600;color:var(--white)}
 .sb-urole{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
@@ -150,22 +161,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .ns{padding:12px 20px 4px;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18)}
 .ni{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:background .15s;color:rgba(255,255,255,.42);font-size:13px;border-left:2px solid transparent;user-select:none}
 .ni:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.8)}
-.ni.on{background:rgba(184,149,58,.11);color:var(--gold);border-left-color:var(--gold)}
+.ni.on{background:rgba(90,244,126,.08);color:var(--gold);border-left-color:var(--gold)}
 .sb-footer{padding:12px 20px;border-top:1px solid rgba(255,255,255,.07)}
-.lout{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.28);font-size:12px;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;transition:color .15s;width:100%;text-align:left}
-.lout:hover{color:var(--rust)}
+.lout{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.28);font-size:12px;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;transition:color .15s;width:100%;text-align:left}
+.lout:hover{color:var(--gold)}
 
 /* MAIN */
-.main{margin-left:248px;flex:1;min-height:100vh;display:flex;flex-direction:column}
-.topbar{background:var(--white);border-bottom:1px solid var(--mist);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
-.pt{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--ink)}
+.main{margin-left:252px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid rgba(90,244,126,.12);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.pt{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--ink)}
 .ps{font-size:11px;color:var(--slate);margin-top:1px}
 .content{padding:28px 32px;flex:1}
 
 /* CARDS */
-.card{background:var(--white);border-radius:10px;border:1px solid var(--mist);padding:20px;margin-bottom:16px}
+.card{background:var(--white);border-radius:6px;border:1px solid var(--mist);padding:22px;margin-bottom:16px}
 .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--mist)}
-.ct{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
+.ct{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
 .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
@@ -173,7 +184,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 /* STAT */
 .sc{background:var(--white);border:1px solid var(--mist);border-radius:10px;padding:16px}
 .sl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate)}
-.sv{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1}
+.sv{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1}
 .sn{font-size:11px;color:var(--slate);margin-top:3px}
 
 /* BADGE */
@@ -181,20 +192,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .bg{background:rgba(107,158,114,.14);color:var(--sage)}
 .br{background:rgba(187,77,56,.14);color:var(--rust)}
 .bb{background:rgba(61,122,181,.14);color:var(--blue)}
-.bgold{background:rgba(184,149,58,.14);color:var(--gold)}
+.bgold{background:rgba(90,244,126,.14);color:var(--gold)}
 .bsl{background:rgba(79,90,106,.1);color:var(--slate)}
 
 /* FORM */
 .fg{margin-bottom:14px}
 .fg label{display:block;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--slate);margin-bottom:4px}
-.fg input,.fg textarea,.fg select{width:100%;padding:9px 12px;border:1.5px solid var(--mist);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--white);color:var(--ink);transition:border-color .2s}
-.fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--gold)}
-.fg textarea{resize:vertical;min-height:64px}
-.btn{padding:8px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.fg input,.fg textarea,.fg select{width:100%;padding:9px 12px;border:1.5px solid var(--mist);border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;background:var(--white);color:var(--ink);transition:border-color .2s}
+.fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(90,244,126,.1)}
+.fg textarea{resize:vertical;min-height:64px;font-family:'Inter',sans-serif}
+.btn{padding:8px 16px;border-radius:5px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .btn-sm{padding:5px 12px;font-size:11px}
 .btn-xs{padding:3px 9px;font-size:10px;font-weight:700}
-.bdk{background:var(--ink);color:var(--gold)}
-.bdk:hover{background:#222}
+.bdk{background:var(--navy);color:var(--gold)}
+.bdk:hover{background:var(--dark)}
 .bol{background:transparent;border:1.5px solid var(--mist);color:var(--slate)}
 .bol:hover{border-color:var(--ink);color:var(--ink)}
 .bsage{background:var(--sage);color:white}
@@ -259,21 +270,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .mv{font-size:12px;color:var(--ink);line-height:1.5;flex:1}
 
 /* WELCOME */
-.wb{background:var(--ink);border-radius:10px;padding:22px 26px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
-.wbt h2{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--white)}
+.wb{background:linear-gradient(135deg,var(--darkest) 0%,var(--dark) 100%);border-radius:6px;border-left:3px solid var(--gold);padding:22px 26px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+.wbt h2{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--white)}
 .wbt p{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px}
 
 /* CLIENT CARD */
-.cc{background:var(--white);border:1px solid var(--mist);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.cc{background:var(--white);border:1px solid var(--mist);border-radius:6px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .cc:hover{box-shadow:0 4px 18px var(--sh);transform:translateY(-1px)}
-.cn{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
+.cn{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
 .csub{font-size:11px;color:var(--slate);margin-top:1px;margin-bottom:10px}
 
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(17,18,16,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
-.md{background:var(--white);border-radius:14px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22)}
-.mdh{padding:22px 26px 16px;border-bottom:1px solid var(--mist);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;border-radius:14px 14px 0 0}
-.mdt{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
+.md{background:var(--white);border-radius:8px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22)}
+.mdh{padding:22px 26px 16px;border-bottom:1px solid var(--mist);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;border-radius:8px 8px 0 0}
+.mdt{font-family:'Playfair Display',serif;font-size:19px;font-weight:700}
 .mdc{background:none;border:none;font-size:20px;cursor:pointer;color:var(--slate);padding:2px 6px;border-radius:4px;line-height:1}
 .mdc:hover{background:var(--cream)}
 .mdb{padding:22px 26px}
@@ -286,7 +297,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .ndd{position:absolute;top:calc(100% + 7px);right:0;width:300px;background:var(--white);border:1px solid var(--mist);border-radius:10px;box-shadow:0 8px 28px var(--sh);z-index:100;overflow:hidden}
 .ndi{padding:11px 14px;border-bottom:1px solid var(--mist);font-size:12px;cursor:default}
 .ndi:last-child{border-bottom:none}
-.ndi.unr{background:rgba(184,149,58,.05)}
+.ndi.unr{background:rgba(90,244,126,.05)}
 .ndt{font-weight:600;color:var(--ink)}
 .nds{font-size:10px;color:var(--slate);margin-top:1px}
 
@@ -296,7 +307,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .ail span:nth-child(2){animation-delay:.2s}
 .ail span:nth-child(3){animation-delay:.4s}
 @keyframes bl{0%,80%,100%{opacity:.15}40%{opacity:1}}
-.ais{background:linear-gradient(135deg,rgba(184,149,58,.05),rgba(107,158,114,.05));border:1px solid var(--gold-l);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
+.ais{background:linear-gradient(135deg,rgba(90,244,126,.05),rgba(107,158,114,.05));border:1px solid var(--gold-l);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
 
 /* CREDS */
 .crb{background:var(--ink);border-radius:8px;padding:16px;margin-top:14px}
@@ -311,7 +322,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .un{font-size:13px;font-weight:500}
 .ue{font-size:10px;color:var(--slate);margin-top:1px}
 .trole{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
-.tor{background:rgba(184,149,58,.12);color:#8a6010}
+.tor{background:rgba(90,244,126,.12);color:#8a6010}
 .tmb{background:rgba(79,90,106,.08);color:var(--slate)}
 
 /* INLINE FORM */
@@ -328,7 +339,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .oc-row{display:flex;gap:24px;justify-content:center}
 .oc-node{background:var(--white);border:1.5px solid var(--mist);border-radius:10px;padding:14px 18px;min-width:160px;text-align:center;position:relative;transition:box-shadow .2s}
 .oc-node:hover{box-shadow:0 4px 16px var(--sh)}
-.oc-node.root{border-color:var(--gold);background:rgba(184,149,58,.04)}
+.oc-node.root{border-color:var(--gold);background:rgba(90,244,126,.04)}
 .oc-seat{font-size:12px;font-weight:600;color:var(--ink)}
 .oc-person{font-size:11px;color:var(--slate);margin-top:3px}
 .oc-person.open{color:var(--rust);font-style:italic}
@@ -337,15 +348,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 
 /* MEETING RUNNER */
 .mr-seg{background:var(--cream);border-radius:10px;padding:18px;margin-bottom:12px;border:2px solid transparent;transition:border-color .2s}
-.mr-seg.cur{border-color:var(--gold);background:rgba(184,149,58,.06)}
+.mr-seg.cur{border-color:var(--gold);background:rgba(90,244,126,.06)}
 .mr-sname{font-weight:600;font-size:14px}
 .mr-sdur{font-size:11px;color:var(--slate);margin-top:2px}
-.timer{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:700;color:var(--ink);text-align:center;margin:10px 0}
+.timer{font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:var(--ink);text-align:center;margin:10px 0}
 .timer.warn{color:var(--rust)}
 
 /* TABS */
 .tabs{display:flex;gap:3px;background:var(--cream);border-radius:8px;padding:3px;margin-bottom:16px}
-.tab{flex:1;padding:7px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--slate);background:transparent;transition:all .15s}
+.tab{flex:1;padding:7px;border-radius:6px;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--slate);background:transparent;transition:all .15s}
 .tab.on{background:var(--white);color:var(--ink);font-weight:600;box-shadow:0 1px 4px var(--sh)}
 
 /* RPRS */
@@ -413,7 +424,7 @@ function AddClientModal({open,onClose,onAdd}){
   const [members,setMembers]=useState([]);
   const [nm,setNm]=useState({name:"",email:"",username:"",password:""});
   const [done,setDone]=useState(null);
-  const colors=["#6b9e72","#b8953a","#bb4d38","#3d7ab5","#6b5fad","#e07b54","#5ba4a4"];
+  const colors=["#6b9e72","#5af47e","#bb4d38","#3d7ab5","#6b5fad","#e07b54","#5ba4a4"];
   const reset=()=>{setStep(1);setBiz({company:"",industry:"",color:"#6b9e72"});setOwner({name:"",email:"",username:"",password:""});setMembers([]);setNm({name:"",email:"",username:"",password:""});setDone(null)};
   const addMember=()=>{if(!nm.name||!nm.username)return;setMembers(m=>[...m,{...nm,id:uid(),role:"member"}]);setNm({name:"",email:"",username:"",password:""})};
   const finish=()=>{
@@ -454,7 +465,7 @@ function AddClientModal({open,onClose,onAdd}){
         </div>
       </>}
       {step===4&&done&&<>
-        <div style={{textAlign:"center",marginBottom:18}}><div style={{fontSize:42,marginBottom:8}}>✦</div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600}}>{done.company}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:3}}>{done.users.length} user{done.users.length!==1?"s":""} created</div></div>
+        <div style={{textAlign:"center",marginBottom:18}}><div style={{fontSize:42,marginBottom:8}}>✦</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600}}>{done.company}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:3}}>{done.users.length} user{done.users.length!==1?"s":""} created</div></div>
         <div style={{fontSize:10,fontWeight:700,color:"var(--slate)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Share these credentials:</div>
         <div className="crb">{done.users.map((u,i)=><div key={u.id} style={{marginBottom:i<done.users.length-1?12:0,paddingBottom:i<done.users.length-1?12:0,borderBottom:i<done.users.length-1?"1px solid rgba(255,255,255,.07)":"none"}}><div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginBottom:5}}>{u.name} · <span style={{color:u.role==="owner"?"var(--gold)":"rgba(255,255,255,.3)"}}>{u.role}</span></div><div className="crr"><span className="crl">Username</span><span className="crv">{u.username}</span></div><div className="crr"><span className="crl">Password</span><span className="crv">{u.password}</span></div></div>)}</div>
       </>}
@@ -478,7 +489,7 @@ function ManageUsersModal({open,business,onClose,onUpdate}){
     <div className="mdb">
       {business.users.map(u=><div key={u.id} className="ur"><Avatar name={u.name}/><div style={{flex:1}}><div className="un">{u.name}</div><div className="ue">{u.email?`${u.email} · `:""} @{u.username}</div></div><span className={`trole ${u.role==="owner"?"tor":"tmb"}`}>{u.role}</span>{u.role!=="owner"&&<button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.3)"}} onClick={()=>onUpdate({...business,users:business.users.filter(x=>x.id!==u.id)})}>Remove</button>}</div>)}
       <div className="div"/>
-      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:600,marginBottom:12}}>Add New User</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:600,marginBottom:12}}>Add New User</div>
       <div className="g2"><div className="fg"><label>Name</label><input value={f.name} onChange={e=>setF(x=>({...x,name:e.target.value}))}/></div><div className="fg"><label>Email</label><input value={f.email} onChange={e=>setF(x=>({...x,email:e.target.value}))}/></div></div>
       <div className="g2"><div className="fg"><label>Username</label><input value={f.username} onChange={e=>setF(x=>({...x,username:e.target.value}))}/></div><div className="fg"><label>Password</label><input value={f.password} onChange={e=>setF(x=>({...x,password:e.target.value}))}/></div></div>
       <div className="fg"><label>Role</label><select value={f.role} onChange={e=>setF(x=>({...x,role:e.target.value}))}><option value="owner">Owner — Full access</option><option value="member">Member — View all, edit own</option></select></div>
@@ -517,64 +528,347 @@ function Dashboard({biz,cu}){
   </div>;
 }
 
+// ─── EDITABLE FIELD HELPERS ──────────────────────────────────────────────────
+function EditField({label,value,onChange,multiline=false,placeholder="",style={}}){
+  return <div className="fg" style={style}>
+    {label&&<label>{label}</label>}
+    {multiline
+      ?<textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{minHeight:72}}/>
+      :<input value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder}/>}
+  </div>;
+}
+
+function EditableList({label,items,onAdd,onRemove,renderItem,addForm}){
+  const [open,setOpen]=useState(false);
+  return <div className="vs">
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+      <div className="vl">{label}</div>
+      <button className="btn btn-xs bol" onClick={()=>setOpen(o=>!o)}>{open?"Cancel":"＋ Add"}</button>
+    </div>
+    {items.map((item,i)=><div key={item.id||i} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
+      <div style={{flex:1}}>{renderItem(item,i)}</div>
+      <button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)",flexShrink:0,marginTop:2}} onClick={()=>onRemove(i)}>✕</button>
+    </div>)}
+    {open&&<div className="inf" style={{marginTop:8}}>{addForm(()=>setOpen(false))}</div>}
+  </div>;
+}
+
+// ─── PDF EXPORT ──────────────────────────────────────────────────────────────
+function exportPlanToPDF(biz){
+  const plan=biz.plan||{};
+  const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>${biz.company} — Business Plan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;color:#111;background:#fff;font-size:12px;line-height:1.6}
+  .page{max-width:780px;margin:0 auto;padding:48px 48px 60px}
+  .cover{text-align:center;padding:80px 0 60px;border-bottom:2px solid #e8e4de;margin-bottom:48px}
+  .cover-logo{font-family:'Playfair Display',serif;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#5af47e;margin-bottom:16px}
+  .cover-title{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;color:#111;line-height:1.15;margin-bottom:12px}
+  .cover-sub{font-size:13px;color:#666;letter-spacing:1px}
+  .cover-date{margin-top:24px;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px}
+  h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#111;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid #5af47e}
+  h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:#333;margin:18px 0 8px}
+  .section{margin-bottom:40px;page-break-inside:avoid}
+  .label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:5px}
+  .value{font-size:13px;color:#222;line-height:1.6}
+  .value.large{font-family:'Playfair Display',serif;font-size:18px;font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px}
+  .box{background:#f8f7f4;border-radius:6px;padding:14px;border-left:3px solid #5af47e}
+  .cv-item{display:flex;gap:14px;margin-bottom:12px;padding:10px 14px;background:#f8f7f4;border-radius:6px}
+  .cv-num{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#5af47e;min-width:24px}
+  .cv-title{font-weight:600;font-size:13px}
+  .cv-desc{font-size:11px;color:#666;margin-top:2px}
+  .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8e4de;font-size:12px}
+  .row:last-child{border-bottom:none}
+  .goal-item{display:flex;gap:10px;margin-bottom:8px;padding:8px 12px;background:#f8f7f4;border-radius:5px;font-size:12px}
+  .goal-num{font-weight:700;color:#5af47e;min-width:18px}
+  .poss{font-size:12px;color:#555;padding:3px 0}
+  .issue-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #e8e4de;font-size:12px}
+  .issue-dot{width:6px;height:6px;border-radius:50%;background:#5af47e;margin-top:5px;flex-shrink:0}
+  .page-break{page-break-before:always}
+  .footer{text-align:center;margin-top:60px;padding-top:20px;border-top:1px solid #e8e4de;font-size:10px;color:#aaa;letter-spacing:1px}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="cover">
+    <div class="cover-logo">The Wealth Network</div>
+    <div class="cover-title">${biz.company}<br/>Business Plan</div>
+    <div class="cover-sub">${biz.industry||""}</div>
+    <div class="cover-date">Generated ${new Date().toLocaleDateString("en-AU",{year:"numeric",month:"long",day:"numeric"})}</div>
+  </div>
+
+  <!-- FUTURE FOCUS -->
+  <div class="section">
+    <h2>Future Focus</h2>
+
+    <h3>Core Values</h3>
+    ${(plan.coreValues||[]).map((v,i)=>`<div class="cv-item"><div class="cv-num">${i+1}</div><div><div class="cv-title">${v.title}</div><div class="cv-desc">${v.desc||""}</div></div></div>`).join("")||"<p style='color:#999;font-style:italic'>Not set</p>"}
+
+    <h3>Core Focus</h3>
+    <div class="grid2">
+      <div class="box"><div class="label">Purpose</div><div class="value">${plan.purpose||"—"}</div></div>
+      <div class="box"><div class="label">Niche</div><div class="value">${plan.niche||"—"}</div></div>
+    </div>
+
+    <h3>BHAG — Big Hairy Audacious Goal</h3>
+    <div class="box" style="margin-bottom:10px">
+      <div class="label">10-Year Goal</div>
+      <div class="value large">${plan.bhag?.goal||"—"}</div>
+    </div>
+    <div class="grid2">
+      <div class="box"><div class="label">Target Date</div><div class="value">${plan.bhag?.date||"—"}</div></div>
+      <div class="box"><div class="label">Narrative</div><div class="value">${plan.bhag?.narrative||"—"}</div></div>
+    </div>
+
+    <h3>3-Year Vision</h3>
+    <div class="grid2">
+      <div class="box"><div class="label">Revenue Target</div><div class="value large">${plan.threeYear?.revenue||"—"}</div></div>
+      <div class="box"><div class="label">Profit Target</div><div class="value large">${plan.threeYear?.profit||"—"}</div></div>
+    </div>
+    ${(plan.threeYear?.measurables||[]).length?`<div style="margin-bottom:10px">${(plan.threeYear.measurables).map(m=>`<div class="row"><span>${m.label}</span><span style="font-weight:600">${m.value}</span></div>`).join("")}</div>`:""}
+    ${(plan.threeYear?.possibilities||[]).length?`<div class="label" style="margin-top:10px">Future Possibilities</div>${(plan.threeYear.possibilities).map(p=>`<div class="poss">• ${p}</div>`).join("")}`:""}
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SHORT-TERM FOCUS -->
+  <div class="section">
+    <h2>Short-Term Focus</h2>
+
+    <h3>1-Year Goals</h3>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="box"><div class="label">Revenue Target</div><div class="value large">${plan.oneYear?.revenue||"—"}</div></div>
+      <div class="box"><div class="label">Profit Target</div><div class="value large">${plan.oneYear?.profit||"—"}</div></div>
+    </div>
+    ${(plan.oneYear?.goals||[]).map((g,i)=>`<div class="goal-item"><div class="goal-num">${i+1}.</div><div>${g}</div></div>`).join("")||"<p style='color:#999;font-style:italic'>No goals set</p>"}
+
+    <h3>Quarterly Goals</h3>
+    <div class="box" style="margin-bottom:12px">
+      <div class="label">Quarter Goal</div>
+      <div class="value large">${plan.quarterly?.goal||"—"}</div>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="box"><div class="label">Revenue</div><div class="value">${plan.quarterly?.revenue||"—"}</div></div>
+      <div class="box"><div class="label">Profit</div><div class="value">${plan.quarterly?.profit||"—"}</div></div>
+    </div>
+    ${(plan.quarterly?.measurables||[]).length?`<div class="label">Measurables</div>${(plan.quarterly.measurables).map(m=>`<div class="row"><span>${m.label}</span><span style="font-weight:600">${m.value}</span></div>`).join("")}`:""}
+
+    ${(plan.longTermIssues||[]).length?`<h3>Long-Term Issues</h3>${(plan.longTermIssues).map(i=>`<div class="issue-item"><div class="issue-dot"></div><div><strong>${i.title}</strong>${i.owner?` — ${i.owner}`:""}</div></div>`).join("")}`:""}
+  </div>
+
+  <div class="footer">THE WEALTH NETWORK · ${biz.company.toUpperCase()} · CONFIDENTIAL</div>
+</div>
+</body>
+</html>`;
+
+  const w=window.open("","_blank","width=900,height=700");
+  w.document.write(html);
+  w.document.close();
+  w.onload=()=>{w.focus();w.print()};
+}
+
+// ─── BUSINESS PLAN (FULLY EDITABLE) ──────────────────────────────────────────
 function BusinessPlan({biz,setBiz,cu}){
   const [tab,setTab]=useState(0);
   const plan=biz.plan||{};
   const canEdit=cu.role==="owner";
   const upPlan=patch=>setBiz(b=>({...b,plan:{...b.plan,...patch}}));
+  const upBhag=patch=>upPlan({bhag:{...plan.bhag,...patch}});
+  const upThree=patch=>upPlan({threeYear:{...plan.threeYear,...patch}});
+  const upOne=patch=>upPlan({oneYear:{...plan.oneYear,...patch}});
+  const upQ=patch=>upPlan({quarterly:{...plan.quarterly,...patch}});
 
-  const CVSection=()=>{
-    const [adding,setAdding]=useState(false);
-    const [f,setF]=useState({title:"",desc:""});
-    return <div className="vs">
-      <div className="vl">Core Values</div>
-      {(plan.coreValues||[]).map((v,i)=><div key={v.id} style={{display:"flex",gap:10,marginBottom:10,padding:"10px 14px",background:"var(--cream)",borderRadius:8}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:"var(--gold)",minWidth:28}}>{i+1}</div><div><div style={{fontWeight:600,fontSize:13}}>{v.title}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>{v.desc}</div></div></div>)}
-      {canEdit&&<>{adding?<div className="inf"><div className="g2"><div className="fg"><label>Value Title</label><input value={f.title} onChange={e=>setF(x=>({...x,title:e.target.value}))} placeholder="e.g. Integrity First"/></div><div className="fg"><label>Description</label><input value={f.desc} onChange={e=>setF(x=>({...x,desc:e.target.value}))} placeholder="Short description..."/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f.title)return;upPlan({coreValues:[...(plan.coreValues||[]),{id:uid(),...f}]});setF({title:"",desc:""});setAdding(false)}}>Save</button><button className="btn btn-sm bol" onClick={()=>setAdding(false)}>Cancel</button></div></div>:<button className="btn btn-sm bol" onClick={()=>setAdding(true)}>＋ Add Value</button>}</>}
-    </div>;
-  };
+  // ── Core Values ──
+  const [addCV,setAddCV]=useState(false);
+  const [cvF,setCvF]=useState({title:"",desc:""});
+
+  // ── 3-Year measurables/possibilities ──
+  const [add3M,setAdd3M]=useState(false);const [f3M,setF3M]=useState({label:"",value:""});
+  const [add3P,setAdd3P]=useState(false);const [f3P,setF3P]=useState("");
+
+  // ── 1-Year goals/measurables ──
+  const [add1G,setAdd1G]=useState(false);const [f1G,setF1G]=useState("");
+  const [add1M,setAdd1M]=useState(false);const [f1M,setF1M]=useState({label:"",value:""});
+
+  // ── Quarterly measurables ──
+  const [addQM,setAddQM]=useState(false);const [fQM,setFQM]=useState({label:"",value:""});
+
+  // ── Long-term issues ──
+  const [addLI,setAddLI]=useState(false);const [fLI,setFLI]=useState({title:"",owner:""});
+
+  const EF=({label,val,up,multi=false,ph=""})=>canEdit
+    ?<div className="fg"><label>{label}</label>{multi?<textarea value={val||""} onChange={e=>up(e.target.value)} placeholder={ph} style={{minHeight:66}}/>:<input value={val||""} onChange={e=>up(e.target.value)} placeholder={ph}/>}</div>
+    :<div className="vs"><div className="vl">{label}</div><div className="vv">{val||"—"}</div></div>;
 
   return <div>
-    <div className="tabs">{["Future Focus","Short-Term Focus"].map((t,i)=><button key={i} className={`tab ${tab===i?"on":""}`} onClick={()=>setTab(i)}>{t}</button>)}</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div className="tabs" style={{flex:1,marginBottom:0,marginRight:12}}>{["Future Focus","Short-Term Focus"].map((t,i)=><button key={i} className={`tab ${tab===i?"on":""}`} onClick={()=>setTab(i)}>{t}</button>)}</div>
+      <button className="btn bdk" onClick={()=>exportPlanToPDF(biz)}>📄 Export PDF</button>
+    </div>
+
     {tab===0&&<div className="g2">
+      {/* LEFT COL */}
       <div>
-        <div className="card"><div className="ch"><div className="ct">Core Identity</div></div>
-          <CVSection/>
-          <div className="vs"><div className="vl">Purpose</div><div className="vv">{plan.purpose||"—"}</div></div>
-          <div className="vs"><div className="vl">Niche</div><div className="vv">{plan.niche||"—"}</div></div>
+        <div className="card">
+          <div className="ch"><div className="ct">Core Identity</div>{canEdit&&<span className="bdg bgold">Editing</span>}</div>
+
+          {/* CORE VALUES */}
+          <div className="vs">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div className="vl">Core Values</div>
+              {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAddCV(o=>!o)}>{addCV?"Cancel":"＋ Add"}</button>}
+            </div>
+            {(plan.coreValues||[]).map((v,i)=><div key={v.id} style={{display:"flex",gap:10,marginBottom:10,padding:"10px 14px",background:"var(--cream)",borderRadius:8,alignItems:"flex-start"}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:"var(--gold)",minWidth:26,paddingTop:1}}>{i+1}</div>
+              {canEdit?<div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
+                <input value={v.title} onChange={e=>upPlan({coreValues:plan.coreValues.map((x,j)=>j===i?{...x,title:e.target.value}:x)})} style={{padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontWeight:600,fontFamily:"'Inter',sans-serif",background:"white",color:"var(--ink)"}} placeholder="Value title"/>
+                <input value={v.desc} onChange={e=>upPlan({coreValues:plan.coreValues.map((x,j)=>j===i?{...x,desc:e.target.value}:x)})} style={{padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:11,fontFamily:"'Inter',sans-serif",background:"white",color:"var(--slate)"}} placeholder="Description"/>
+              </div>:<div><div style={{fontWeight:600,fontSize:13}}>{v.title}</div><div style={{fontSize:12,color:"var(--slate)",marginTop:2}}>{v.desc}</div></div>}
+              {canEdit&&<button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)",marginTop:2}} onClick={()=>upPlan({coreValues:plan.coreValues.filter((_,j)=>j!==i)})}>✕</button>}
+            </div>)}
+            {canEdit&&addCV&&<div className="inf"><div className="g2"><div className="fg"><label>Value Title</label><input value={cvF.title} onChange={e=>setCvF(f=>({...f,title:e.target.value}))} placeholder="e.g. Integrity First"/></div><div className="fg"><label>Description</label><input value={cvF.desc} onChange={e=>setCvF(f=>({...f,desc:e.target.value}))} placeholder="One-line description"/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!cvF.title)return;upPlan({coreValues:[...(plan.coreValues||[]),{id:uid(),...cvF}]});setCvF({title:"",desc:""});setAddCV(false)}}>Save Value</button><button className="btn btn-sm bol" onClick={()=>setAddCV(false)}>Cancel</button></div></div>}
+          </div>
+
+          <EF label="Purpose" val={plan.purpose} up={v=>upPlan({purpose:v})} ph="Why does this organisation exist?"/>
+          <EF label="Niche" val={plan.niche} up={v=>upPlan({niche:v})} ph="Who do you serve and how?"/>
         </div>
-        <div className="card"><div className="ch"><div className="ct">BHAG</div><span className="bdg bsl">10-Year</span></div>
-          <div className="vs"><div className="vl">Goal</div><div className="vv" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:600}}>{plan.bhag?.goal||"—"}</div></div>
-          <div className="vs"><div className="vl">Target Date</div><div className="vv">{plan.bhag?.date||"—"}</div></div>
-          <div className="vs"><div className="vl">Narrative</div><div className="vv">{plan.bhag?.narrative||"—"}</div></div>
+
+        {/* BHAG */}
+        <div className="card">
+          <div className="ch"><div className="ct">BHAG</div><span className="bdg bsl">10-Year Goal</span></div>
+          <EF label="Big Hairy Audacious Goal" val={plan.bhag?.goal} up={v=>upBhag({goal:v})} ph="Your 10-year moonshot goal"/>
+          <EF label="Target Date" val={plan.bhag?.date} up={v=>upBhag({date:v})} ph="e.g. 2035-01-01"/>
+          <EF label="Narrative — What does success look like?" val={plan.bhag?.narrative} up={v=>upBhag({narrative:v})} multi ph="Paint the picture of success in vivid detail..."/>
         </div>
       </div>
+
+      {/* RIGHT COL */}
       <div>
-        <div className="card"><div className="ch"><div className="ct">3-Year Vision</div><span className="bdg bb">3 Years</span></div>
-          <div className="g2" style={{marginBottom:14}}>
-            <div className="sc"><div className="sl">Revenue Target</div><div className="sv" style={{fontSize:22}}>{plan.threeYear?.revenue||"—"}</div></div>
-            <div className="sc"><div className="sl">Profit Target</div><div className="sv" style={{fontSize:22}}>{plan.threeYear?.profit||"—"}</div></div>
+        <div className="card">
+          <div className="ch"><div className="ct">3-Year Vision</div><span className="bdg bb">3 Years</span></div>
+          <div className="g2">
+            <EF label="Future Date" val={plan.threeYear?.date} up={v=>upThree({date:v})} ph="2028-01-01"/>
+            <div/>
           </div>
-          <div className="vs"><div className="vl">Measurables</div>{(plan.threeYear?.measurables||[]).map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>)}</div>
-          <div className="vs" style={{marginTop:12}}><div className="vl">Possibilities</div>{(plan.threeYear?.possibilities||[]).map((p,i)=><div key={i} style={{fontSize:12,padding:"3px 0",color:"var(--slate)"}}>• {p}</div>)}</div>
+          <div className="g2">
+            <EF label="Revenue Target" val={plan.threeYear?.revenue} up={v=>upThree({revenue:v})} ph="$20M"/>
+            <EF label="Profit Target" val={plan.threeYear?.profit} up={v=>upThree({profit:v})} ph="$4M"/>
+          </div>
+
+          {/* 3-Year Measurables */}
+          <div className="vs">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div className="vl">Measurables</div>
+              {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAdd3M(o=>!o)}>{add3M?"Cancel":"＋ Add"}</button>}
+            </div>
+            {(plan.threeYear?.measurables||[]).map((m,i)=><div key={m.id} style={{display:"flex",gap:8,marginBottom:4,alignItems:"center"}}>
+              {canEdit?<><input value={m.label} onChange={e=>upThree({measurables:plan.threeYear.measurables.map((x,j)=>j===i?{...x,label:e.target.value}:x)})} style={{flex:2,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif"}}/><input value={m.value} onChange={e=>upThree({measurables:plan.threeYear.measurables.map((x,j)=>j===i?{...x,value:e.target.value}:x)})} style={{flex:1,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600}}/><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upThree({measurables:plan.threeYear.measurables.filter((_,j)=>j!==i)})}>✕</button></>
+              :<div style={{display:"flex",justifyContent:"space-between",flex:1,padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>}
+            </div>)}
+            {canEdit&&add3M&&<div className="inf" style={{marginTop:8}}><div className="g2"><div className="fg"><label>Label</label><input value={f3M.label} onChange={e=>setF3M(f=>({...f,label:e.target.value}))} placeholder="e.g. Team Size"/></div><div className="fg"><label>Target Value</label><input value={f3M.value} onChange={e=>setF3M(f=>({...f,value:e.target.value}))} placeholder="e.g. 80+"/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f3M.label)return;upThree({measurables:[...(plan.threeYear?.measurables||[]),{id:uid(),...f3M}]});setF3M({label:"",value:""});setAdd3M(false)}}>Add</button><button className="btn btn-sm bol" onClick={()=>setAdd3M(false)}>Cancel</button></div></div>}
+          </div>
+
+          {/* Future Possibilities */}
+          <div className="vs" style={{marginTop:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div className="vl">Future Possibilities</div>
+              {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAdd3P(o=>!o)}>{add3P?"Cancel":"＋ Add"}</button>}
+            </div>
+            {(plan.threeYear?.possibilities||[]).map((p,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:4,alignItems:"center"}}>
+              {canEdit?<><input value={p} onChange={e=>upThree({possibilities:plan.threeYear.possibilities.map((x,j)=>j===i?e.target.value:x)})} style={{flex:1,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif"}}/><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upThree({possibilities:plan.threeYear.possibilities.filter((_,j)=>j!==i)})}>✕</button></>
+              :<div style={{fontSize:12,padding:"3px 0",color:"var(--slate)"}}>• {p}</div>}
+            </div>)}
+            {canEdit&&add3P&&<div className="inf" style={{marginTop:8}}><div className="fg"><label>Possibility</label><input value={f3P} onChange={e=>setF3P(e.target.value)} placeholder="e.g. Expand to APAC"/></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f3P)return;upThree({possibilities:[...(plan.threeYear?.possibilities||[]),f3P]});setF3P("");setAdd3P(false)}}>Add</button><button className="btn btn-sm bol" onClick={()=>setAdd3P(false)}>Cancel</button></div></div>}
+          </div>
         </div>
-        {(plan.longTermIssues||[]).length>0&&<div className="card"><div className="ch"><div className="ct">Long-Term Issues</div></div>{plan.longTermIssues.map(i=><div key={i.id} className="ii"><div className="ibar mip"/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{i.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:2}}>{i.owner}</div></div></div>)}</div>}
+
+        {/* Long-term issues */}
+        <div className="card">
+          <div className="ch"><div className="ct">Long-Term Issues</div>{canEdit&&<button className="btn btn-xs bol" onClick={()=>setAddLI(o=>!o)}>{addLI?"Cancel":"＋ Add"}</button>}</div>
+          {!(plan.longTermIssues||[]).length&&<div className="est" style={{padding:"16px 0"}}>No long-term issues.</div>}
+          {(plan.longTermIssues||[]).map((iss,i)=><div key={iss.id} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"8px 0",borderBottom:"1px solid var(--mist)"}}>
+            <div className="ibar mip" style={{marginTop:4}}/>
+            {canEdit?<><div style={{flex:1,display:"flex",flexDirection:"column",gap:4}}>
+              <input value={iss.title} onChange={e=>upPlan({longTermIssues:plan.longTermIssues.map((x,j)=>j===i?{...x,title:e.target.value}:x)})} style={{padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif"}}/>
+              <input value={iss.owner||""} onChange={e=>upPlan({longTermIssues:plan.longTermIssues.map((x,j)=>j===i?{...x,owner:e.target.value}:x)})} style={{padding:"4px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:11,fontFamily:"'Inter',sans-serif",color:"var(--slate)"}} placeholder="Owner"/>
+            </div><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upPlan({longTermIssues:plan.longTermIssues.filter((_,j)=>j!==i)})}>✕</button></>
+            :<div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{iss.title}</div><div style={{fontSize:11,color:"var(--slate)",marginTop:2}}>{iss.owner}</div></div>}
+          </div>)}
+          {canEdit&&addLI&&<div className="inf" style={{marginTop:10}}><div className="fg"><label>Issue</label><input value={fLI.title} onChange={e=>setFLI(f=>({...f,title:e.target.value}))} placeholder="Describe the long-term issue"/></div><div className="fg"><label>Owner</label><select value={fLI.owner} onChange={e=>setFLI(f=>({...f,owner:e.target.value}))}><option value="">Assign to...</option>{biz.users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}</select></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!fLI.title)return;upPlan({longTermIssues:[...(plan.longTermIssues||[]),{id:uid(),...fLI}]});setFLI({title:"",owner:""});setAddLI(false)}}>Add Issue</button><button className="btn btn-sm bol" onClick={()=>setAddLI(false)}>Cancel</button></div></div>}
+        </div>
       </div>
     </div>}
+
     {tab===1&&<div className="g2">
-      <div className="card"><div className="ch"><div className="ct">1-Year Goals</div><span className="bdg bgold">Annual</span></div>
-        <div className="g2" style={{marginBottom:14}}>
-          <div className="sc"><div className="sl">Revenue</div><div className="sv" style={{fontSize:22}}>{plan.oneYear?.revenue||"—"}</div></div>
-          <div className="sc"><div className="sl">Profit</div><div className="sv" style={{fontSize:22}}>{plan.oneYear?.profit||"—"}</div></div>
+      {/* 1-YEAR */}
+      <div className="card">
+        <div className="ch"><div className="ct">1-Year Goals</div><span className="bdg bgold">Annual</span></div>
+        <div className="g2">
+          <EF label="Future Date" val={plan.oneYear?.date} up={v=>upOne({date:v})} ph="2026-01-01"/>
+          <div/>
         </div>
-        <div className="vs"><div className="vl">Annual Goals</div>{(plan.oneYear?.goals||[]).map((g,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:8,fontSize:13}}><span style={{color:"var(--gold)",fontWeight:700,minWidth:18}}>{i+1}.</span>{g}</div>)}</div>
+        <div className="g2">
+          <EF label="Revenue Target" val={plan.oneYear?.revenue} up={v=>upOne({revenue:v})} ph="$8M"/>
+          <EF label="Profit Target" val={plan.oneYear?.profit} up={v=>upOne({profit:v})} ph="$1.2M"/>
+        </div>
+
+        {/* 1-Year Measurables */}
+        <div className="vs">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div className="vl">Measurables</div>
+            {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAdd1M(o=>!o)}>{add1M?"Cancel":"＋ Add"}</button>}
+          </div>
+          {(plan.oneYear?.measurables||[]).map((m,i)=><div key={m.id} style={{display:"flex",gap:8,marginBottom:4,alignItems:"center"}}>
+            {canEdit?<><input value={m.label} onChange={e=>upOne({measurables:plan.oneYear.measurables.map((x,j)=>j===i?{...x,label:e.target.value}:x)})} style={{flex:2,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif"}}/><input value={m.value} onChange={e=>upOne({measurables:plan.oneYear.measurables.map((x,j)=>j===i?{...x,value:e.target.value}:x)})} style={{flex:1,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600}}/><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upOne({measurables:plan.oneYear.measurables.filter((_,j)=>j!==i)})}>✕</button></>
+            :<div style={{display:"flex",justifyContent:"space-between",flex:1,padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>}
+          </div>)}
+          {canEdit&&add1M&&<div className="inf" style={{marginTop:8}}><div className="g2"><div className="fg"><label>Label</label><input value={f1M.label} onChange={e=>setF1M(f=>({...f,label:e.target.value}))} placeholder="e.g. ARR"/></div><div className="fg"><label>Target</label><input value={f1M.value} onChange={e=>setF1M(f=>({...f,value:e.target.value}))} placeholder="e.g. $8M"/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f1M.label)return;upOne({measurables:[...(plan.oneYear?.measurables||[]),{id:uid(),...f1M}]});setF1M({label:"",value:""});setAdd1M(false)}}>Add</button><button className="btn btn-sm bol" onClick={()=>setAdd1M(false)}>Cancel</button></div></div>}
+        </div>
+
+        {/* Annual Goals */}
+        <div className="vs" style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div className="vl">Annual Goals (3–5)</div>
+            {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAdd1G(o=>!o)}>{add1G?"Cancel":"＋ Add"}</button>}
+          </div>
+          {(plan.oneYear?.goals||[]).map((g,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"center"}}>
+            <span style={{color:"var(--gold)",fontWeight:700,minWidth:18,fontSize:13}}>{i+1}.</span>
+            {canEdit?<><input value={g} onChange={e=>upOne({goals:plan.oneYear.goals.map((x,j)=>j===i?e.target.value:x)})} style={{flex:1,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif"}}/><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upOne({goals:plan.oneYear.goals.filter((_,j)=>j!==i)})}>✕</button></>
+            :<span style={{fontSize:13}}>{g}</span>}
+          </div>)}
+          {canEdit&&add1G&&<div className="inf" style={{marginTop:8}}><div className="fg"><label>Annual Goal</label><input value={f1G} onChange={e=>setF1G(e.target.value)} placeholder="e.g. Hire VP Sales"/></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!f1G)return;upOne({goals:[...(plan.oneYear?.goals||[]),f1G]});setF1G("");setAdd1G(false)}}>Add Goal</button><button className="btn btn-sm bol" onClick={()=>setAdd1G(false)}>Cancel</button></div></div>}
+        </div>
       </div>
-      <div className="card"><div className="ch"><div className="ct">Quarterly Goals</div><span className="bdg bg">This Quarter</span></div>
-        <div className="vs"><div className="vl">Quarter Goal</div><div className="vv" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600}}>{plan.quarterly?.goal||"—"}</div></div>
-        <div className="g2" style={{marginBottom:14}}>
-          <div className="sc"><div className="sl">Revenue</div><div className="sv" style={{fontSize:20}}>{plan.quarterly?.revenue||"—"}</div></div>
-          <div className="sc"><div className="sl">Profit</div><div className="sv" style={{fontSize:20}}>{plan.quarterly?.profit||"—"}</div></div>
+
+      {/* QUARTERLY */}
+      <div className="card">
+        <div className="ch"><div className="ct">Quarterly Goals</div><span className="bdg bg">This Quarter</span></div>
+        <EF label="Quarter End Date" val={plan.quarterly?.date} up={v=>upQ({date:v})} ph="2025-06-30"/>
+        <EF label="Quarter Goal Statement" val={plan.quarterly?.goal} up={v=>upQ({goal:v})} multi ph="What is the one thing this quarter is about?"/>
+        <div className="g2">
+          <EF label="Revenue Target" val={plan.quarterly?.revenue} up={v=>upQ({revenue:v})} ph="$2M"/>
+          <EF label="Profit Target" val={plan.quarterly?.profit} up={v=>upQ({profit:v})} ph="$300K"/>
         </div>
-        <div className="vs"><div className="vl">Measurables</div>{(plan.quarterly?.measurables||[]).map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>)}</div>
+
+        {/* Quarterly Measurables */}
+        <div className="vs">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div className="vl">Measurables</div>
+            {canEdit&&<button className="btn btn-xs bol" onClick={()=>setAddQM(o=>!o)}>{addQM?"Cancel":"＋ Add"}</button>}
+          </div>
+          {(plan.quarterly?.measurables||[]).map((m,i)=><div key={m.id} style={{display:"flex",gap:8,marginBottom:4,alignItems:"center"}}>
+            {canEdit?<><input value={m.label} onChange={e=>upQ({measurables:plan.quarterly.measurables.map((x,j)=>j===i?{...x,label:e.target.value}:x)})} style={{flex:2,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif"}}/><input value={m.value} onChange={e=>upQ({measurables:plan.quarterly.measurables.map((x,j)=>j===i?{...x,value:e.target.value}:x)})} style={{flex:1,padding:"5px 8px",border:"1.5px solid var(--mist)",borderRadius:5,fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600}}/><button className="btn btn-xs bol" style={{color:"var(--rust)",borderColor:"rgba(187,77,56,.25)"}} onClick={()=>upQ({measurables:plan.quarterly.measurables.filter((_,j)=>j!==i)})}>✕</button></>
+            :<div style={{display:"flex",justifyContent:"space-between",flex:1,padding:"5px 0",borderBottom:"1px solid var(--mist)",fontSize:12}}><span>{m.label}</span><span style={{fontWeight:600}}>{m.value}</span></div>}
+          </div>)}
+          {canEdit&&addQM&&<div className="inf" style={{marginTop:8}}><div className="g2"><div className="fg"><label>Label</label><input value={fQM.label} onChange={e=>setFQM(f=>({...f,label:e.target.value}))} placeholder="e.g. New MRR"/></div><div className="fg"><label>Target</label><input value={fQM.value} onChange={e=>setFQM(f=>({...f,value:e.target.value}))} placeholder="e.g. $150K"/></div></div><div style={{display:"flex",gap:8}}><button className="btn btn-sm bdk" onClick={()=>{if(!fQM.label)return;upQ({measurables:[...(plan.quarterly?.measurables||[]),{id:uid(),...fQM}]});setFQM({label:"",value:""});setAddQM(false)}}>Add</button><button className="btn btn-sm bol" onClick={()=>setAddQM(false)}>Cancel</button></div></div>}
+        </div>
       </div>
     </div>}
   </div>;
@@ -673,7 +967,7 @@ function Headlines({biz,setBiz,cu}){
   const [f,setF]=useState({text:""});
   const add=()=>{if(!f.text)return;setBiz(b=>({...b,headlines:[{id:Date.now(),owner:cu.name,text:f.text,date:today()},...(b.headlines||[])]}));setF({text:""})};
   return <div className="card"><div className="ch"><div className="ct">Headlines</div></div>
-    <div style={{display:"flex",gap:8,marginBottom:16}}><input value={f.text} onChange={e=>setF({text:e.target.value})} placeholder="Share a win or update..." style={{flex:1,padding:"9px 12px",border:"1.5px solid var(--mist)",borderRadius:7,fontFamily:"'DM Sans',sans-serif",fontSize:13,color:"var(--ink)"}}/><button className="btn bdk" onClick={add}>Post</button></div>
+    <div style={{display:"flex",gap:8,marginBottom:16}}><input value={f.text} onChange={e=>setF({text:e.target.value})} placeholder="Share a win or update..." style={{flex:1,padding:"9px 12px",border:"1.5px solid var(--mist)",borderRadius:7,fontFamily:"'Inter',sans-serif",fontSize:13,color:"var(--ink)"}}/><button className="btn bdk" onClick={add}>Post</button></div>
     {!(biz.headlines||[]).length&&<div className="est">No headlines yet.</div>}
     {(biz.headlines||[]).map(h=><div className="hl" key={h.id}><Avatar name={h.owner}/><div><div className="hl-text">🎉 {h.text}</div><div className="hl-meta">{h.owner} · {h.date}</div></div></div>)}
   </div>;
@@ -742,7 +1036,7 @@ function OneOnOnes({biz,setBiz,cu}){
 // ─── COACH OVERVIEW ───────────────────────────────────────────────────────────
 function CoachOverview({businesses,onSelect,onAdd,onUsers}){
   return <div>
-    <div className="wb"><div className="wbt"><h2>Coach Dashboard ✦</h2><p>{Object.keys(businesses).length} active business clients</p></div><button className="btn bdk" onClick={onAdd}>＋ Add Business Client</button></div>
+    <div className="wb"><div className="wbt"><h2>The Wealth Network</h2><p>{Object.keys(businesses).length} active business clients</p></div><button className="btn bdk" onClick={onAdd}>＋ Add Business Client</button></div>
     <div className="g3">{Object.values(businesses).map(biz=>{
       const onTrack=(biz.rocks||[]).filter(r=>r.status==="on-track").length;
       const openIss=(biz.issues||[]).filter(i=>i.status==="open").length;
@@ -827,14 +1121,19 @@ export default function App(){
     <style>{CSS}</style>
     <div className="login">
       <div className="ll">
-        <div className="orb" style={{width:380,height:380,top:"5%",left:"-15%"}}/>
-        <div className="orb" style={{width:200,height:200,bottom:"12%",right:"-5%"}}/>
-        <div className="logo">Compass</div>
-        <div className="logo-sub">EOS Business Intelligence</div>
+        <div className="ll-geo"/>
+        <div className="ll-geo2"/>
+        <div className="ll-geo3"/>
+        <div className="ll-rule"/>
+        <div className="logo">The Wealth Network</div>
+        <div className="logo-name">Business<br/><span>Intelligence</span><br/>Platform</div>
+        <div className="logo-sub">Financial Adviser</div>
+        <div className="logo-loc">Sydney NSW · Australia</div>
+        <div className="logo-ver">v1.0</div>
       </div>
       <div className="lr"><div className="lf">
         <h2>Welcome back</h2>
-        <p>Sign in to your coaching dashboard</p>
+        <p>Sign in to your adviser dashboard</p>
         <div className="fi"><label>Username</label><input value={lf.username} onChange={e=>setLf(f=>({...f,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter username"/></div>
         <div className="fi"><label>Password</label><input type="password" value={lf.password} onChange={e=>setLf(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter password"/></div>
         {lerr&&<div className="err">{lerr}</div>}
@@ -854,7 +1153,11 @@ export default function App(){
     <EmailModal open={email.open} onClose={()=>setEmail(e=>({...e,open:false}))} title={email.title} content={email.content} loading={email.loading}/>
     <div className="app">
       <div className="sb">
-        <div className="sb-brand"><div className="sb-logo">Compass</div><div className="sb-sub">EOS Platform</div></div>
+        <div className="sb-brand">
+          <div className="sb-logo">The Wealth Network</div>
+          <div className="sb-name">Business<br/><span>Intelligence</span></div>
+          <div className="sb-sub">Financial Adviser · Sydney</div>
+        </div>
         <div className="sb-user"><div className="sb-uname">{user.name}</div><div className="sb-urole">{dispRole}</div></div>
         <nav className="sb-nav">
           {isCoach&&<><div className="ns">Coach</div>
