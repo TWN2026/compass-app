@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
 
-  const { username, password } = req.body;
+  const body = req.body || {};
+  const { username, password } = body;
   if (!username || !password) return json(res, 400, { error: 'Missing credentials' });
 
   try {
@@ -55,6 +56,6 @@ export default async function handler(req, res) {
     return json(res, 200, { user, business });
   } catch (err) {
     console.error('login error', err);
-    return json(res, 500, { error: 'Server error' });
+    return json(res, 500, { error: 'Server error', detail: err.message });
   }
 }
