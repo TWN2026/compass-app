@@ -18,7 +18,10 @@ export default async function handler(req, res) {
     if (!rows.length) return json(res, 401, { error: 'Invalid username or password' });
 
     const row = rows[0];
-    const valid = await bcrypt.compare(password, row.password);
+    // Support bcrypt hashes (new users) and plaintext (seeded demo users)
+    const valid = row.password.startsWith('$2')
+      ? await bcrypt.compare(password, row.password)
+      : password === row.password;
     if (!valid) return json(res, 401, { error: 'Invalid username or password' });
 
     const user = {
