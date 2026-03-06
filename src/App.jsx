@@ -678,7 +678,7 @@ function exportPlanToPDF(biz){
 function BusinessPlan({biz,setBiz,cu}){
   const [tab,setTab]=useState(0);
   const plan=biz.plan||{};
-  const canEdit=cu.role==="owner";
+  const canEdit=cu.role==="owner"||cu.role==="coach";
   const upPlan=patch=>setBiz(b=>({...b,plan:{...b.plan,...patch}}));
   const upBhag=patch=>upPlan({bhag:{...plan.bhag,...patch}});
   const upThree=patch=>upPlan({threeYear:{...plan.threeYear,...patch}});
@@ -1127,9 +1127,8 @@ export default function App(){
         <div className="ll-rule"/>
         <div className="logo">The Wealth Network</div>
         <div className="logo-name">Business<br/><span>Intelligence</span><br/>Platform</div>
-        <div className="logo-sub">Financial Adviser</div>
-        <div className="logo-loc">Sydney NSW · Australia</div>
-        <div className="logo-ver">v1.0</div>
+        <div className="logo-sub">Business Coach</div>
+        <div className="logo-ver">Version 2.0</div>
       </div>
       <div className="lr"><div className="lf">
         <h2>Welcome back</h2>
@@ -1138,7 +1137,7 @@ export default function App(){
         <div className="fi"><label>Password</label><input type="password" value={lf.password} onChange={e=>setLf(f=>({...f,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter password"/></div>
         {lerr&&<div className="err">{lerr}</div>}
         <button className="btn-login" onClick={login}>Sign In →</button>
-        <div className="hint"><strong>Demo logins:</strong><br/>Coach: <strong>coach</strong> / coach123<br/>Owner: <strong>sarah.acme</strong> / acme123<br/>Member: <strong>james.acme</strong> / acme456<br/>Owner: <strong>james.vertex</strong> / vertex123</div>
+        <div className="hint"><strong>Demo logins:</strong><br/>Coach: <strong>coach</strong><br/>Owner: <strong>sarah.acme</strong><br/>Member: <strong>james.acme</strong><br/>Owner: <strong>james.vertex</strong></div>
       </div></div>
     </div>
   </>;
@@ -1156,7 +1155,7 @@ export default function App(){
         <div className="sb-brand">
           <div className="sb-logo">The Wealth Network</div>
           <div className="sb-name">Business<br/><span>Intelligence</span></div>
-          <div className="sb-sub">Financial Adviser · Sydney</div>
+          <div className="sb-sub">Business Coach</div>
         </div>
         <div className="sb-user"><div className="sb-uname">{user.name}</div><div className="sb-urole">{dispRole}</div></div>
         <nav className="sb-nav">
