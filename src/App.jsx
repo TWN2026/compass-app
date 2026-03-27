@@ -678,7 +678,7 @@ function exportPlanToPDF(biz){
 function BusinessPlan({biz,setBiz,cu}){
   const [tab,setTab]=useState(0);
   const plan=biz.plan||{};
-  const canEdit=cu.role==="owner";
+  const canEdit=cu.role==="owner"||cu.role==="coach";
   const upPlan=patch=>setBiz(b=>({...b,plan:{...b.plan,...patch}}));
   const upBhag=patch=>upPlan({bhag:{...plan.bhag,...patch}});
   const upThree=patch=>upPlan({threeYear:{...plan.threeYear,...patch}});
@@ -1058,9 +1058,31 @@ function CoachOverview({businesses,onSelect,onAdd,onUsers}){
   </div>;
 }
 
+// ─── PERSISTENCE HELPERS ─────────────────────────────────────────────────────
+const STORAGE_KEY = "twn_businesses_v1";
+
+function loadBusinesses(){
+  try{
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved){
+      const parsed = JSON.parse(saved);
+      // Merge: keep saved clients, always ensure SEED demo clients exist too
+      return {...SEED,...parsed};
+    }
+  }catch(e){console.warn("Failed to load saved data",e)}
+  return SEED;
+}
+
+function saveBusinesses(biz){
+  try{
+    // Only save non-seed businesses + any modified seed businesses
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(biz));
+  }catch(e){console.warn("Failed to save data",e)}
+}
+
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App(){
-  const [businesses,setBusinesses]=useState(SEED);
+  const [businesses,setBusinesses]=useState(()=>loadBusinesses());
   const [user,setUser]=useState(null);
   const [lf,setLf]=useState({username:"",password:""});
   const [lerr,setLerr]=useState("");
@@ -1081,7 +1103,10 @@ export default function App(){
   const biz=bizId?businesses[bizId]:null;
   const manageBiz=manageId?businesses[manageId]:null;
 
-  const setBiz=upd=>setBusinesses(p=>{const u=typeof upd==="function"?upd(p[bizId]):upd;return{...p,[bizId]:u}});
+  const setBiz=upd=>setBusinesses(p=>{const u=typeof upd==="function"?upd(p[bizId]):upd;const next={...p,[bizId]:u};saveBusinesses(next);return next});
+
+  // Auto-save whenever businesses changes (catches addClient, manageUsers etc)
+  const setBusinessesAndSave=cb=>setBusinesses(prev=>{const next=typeof cb==="function"?cb(prev):cb;saveBusinesses(next);return next});
   const addNotif=(title,body)=>setNotifs(n=>[{id:uid(),title,body,read:false},...n]);
 
   const sendSummary=async note=>{
@@ -1129,7 +1154,7 @@ export default function App(){
         <div className="logo-name">Business<br/><span>Intelligence</span><br/>Platform</div>
         <div className="logo-sub">Financial Adviser</div>
         <div className="logo-loc">Sydney NSW · Australia</div>
-        <div className="logo-ver">v1.0</div>
+        <div className="logo-ver">v1.1</div>
       </div>
       <div className="lr"><div className="lf">
         <h2>Welcome back</h2>
@@ -1148,8 +1173,8 @@ export default function App(){
 
   return <>
     <style>{CSS}</style>
-    <AddClientModal open={showAdd} onClose={()=>setShowAdd(false)} onAdd={nb=>setBusinesses(b=>({...b,[nb.id]:nb}))}/>
-    <ManageUsersModal open={!!manageBiz} business={manageBiz} onClose={()=>setManageId(null)} onUpdate={ub=>setBusinesses(b=>({...b,[ub.id]:ub}))}/>
+    <AddClientModal open={showAdd} onClose={()=>setShowAdd(false)} onAdd={nb=>setBusinessesAndSave(b=>{const next={...b,[nb.id]:nb};saveBusinesses(next);return next})}/>
+    <ManageUsersModal open={!!manageBiz} business={manageBiz} onClose={()=>setManageId(null)} onUpdate={ub=>setBusinessesAndSave(b=>{const next={...b,[ub.id]:ub};saveBusinesses(next);return next})}/>
     <EmailModal open={email.open} onClose={()=>setEmail(e=>({...e,open:false}))} title={email.title} content={email.content} loading={email.loading}/>
     <div className="app">
       <div className="sb">
