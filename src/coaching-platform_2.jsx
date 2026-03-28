@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
 
 // ─── Brand tokens ────────────────────────────────────────────────────────────
 const BRAND = {
@@ -187,7 +186,7 @@ const styles = `
     background: ${BRAND.white};
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 10;
   }
   .topbar-title {
     font-family: 'Cormorant Garamond', serif;
@@ -593,10 +592,10 @@ const styles = `
 
   /* ── Animations ── */
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
-  .animate-in { animation: fadeIn 0.25s ease forwards; }
+  .animate-in { animation: fadeIn 0.2s ease forwards; }
 
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 5px; }
@@ -661,6 +660,10 @@ const defaultBusinesses = {
     reviews: {},
     financials: [],
     budgets: {},
+    newBusiness: [],
+    newBusinessTargets: {},
+    scorecard: { metrics: [] },
+    meetings: [],
     id: "vertex",
     name: "Vertex Wealth",
     vto: {
@@ -704,6 +707,10 @@ const defaultBusinesses = {
     reviews: {},
     financials: [],
     budgets: {},
+    newBusiness: [],
+    newBusinessTargets: {},
+    scorecard: { metrics: [] },
+    meetings: [],
   }
 };
 
@@ -746,18 +753,38 @@ function priorityColor(p) {
 // ─── Components ──────────────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children, footer }) {
-  // Use createPortal so the modal always renders at document.body,
-  // bypassing any stacking context created by the sidebar layout.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
-  if (!mounted) return null;
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
 
-  const content = (
-    <div className="modal-overlay"
+  return (
+    <div
       onMouseDown={e => e.target === e.currentTarget && onClose()}
-      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,21,35,0.4)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div className="modal animate-in" onMouseDown={e => e.stopPropagation()}
-        style={{ background: "#ffffff", border: "1px solid #dde3ee", borderRadius: 12, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(15,21,35,0.45)",
+        backdropFilter: "blur(3px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "24px 16px",
+      }}>
+      <div
+        onMouseDown={e => e.stopPropagation()}
+        style={{
+          background: "#ffffff",
+          border: `1px solid ${BRAND.border}`,
+          borderRadius: 12,
+          width: "100%", maxWidth: 560,
+          maxHeight: "85vh",
+          overflowY: "auto",
+          boxShadow: "0 20px 60px rgba(15,21,35,0.18)",
+          position: "relative",
+        }}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
@@ -767,8 +794,6 @@ function Modal({ title, onClose, children, footer }) {
       </div>
     </div>
   );
-
-  return ReactDOM.createPortal(content, document.body);
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -826,9 +851,68 @@ function Dashboard({ business }) {
   const atRisk = rocks.filter(r => r.status === "at-risk").length;
   const highIssues = issues.filter(i => i.priority === "high").length;
 
+  // ── New Business targets & actuals ─────────────────────────────────────────
+  const nb = business.newBusiness || [];
+  const targets = business.newBusinessTargets || {};
+  const currentQ = (() => {
+    const now = new Date();
+    const fyEnd = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+    const m = now.getMonth(); // 0-based
+    if (m >= 6 && m <= 8) return `Q1 FY${fyEnd}`;
+    if (m >= 9 && m <= 11) return `Q2 FY${fyEnd}`;
+    if (m >= 0 && m <= 2) return `Q3 FY${fyEnd}`;
+    return `Q4 FY${fyEnd}`;
+  })();
+
+  const qEntries = nb.filter(e => e.startingQ === currentQ);
+  const bookedEntries = qEntries.filter(e => e.status === "Booked");
+
+  const bookedOneOff = bookedEntries.reduce((a, e) => a + parseMoney(e.totalOneOff), 0);
+  const bookedOngoing = bookedEntries.reduce((a, e) => a + parseMoney(e.ongoing), 0);
+  const bookedClients = bookedEntries.length;
+
+  const targetOneOff = parseMoney(targets.oneOffTarget) || 0;
+  const targetOngoing = parseMoney(targets.ongoingTarget) || 0;
+  const targetClients = parseMoney(targets.clientTarget) || 0;
+
+  const pctOneOff = targetOneOff > 0 ? Math.min(100, Math.round((bookedOneOff / targetOneOff) * 100)) : null;
+  const pctOngoing = targetOngoing > 0 ? Math.min(100, Math.round((bookedOngoing / targetOngoing) * 100)) : null;
+  const pctClients = targetClients > 0 ? Math.min(100, Math.round((bookedClients / targetClients) * 100)) : null;
+
+  function TargetBar({ label, booked, target, pct, prefix = "$" }) {
+    if (target === 0) return (
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>{label} — no target set</div>
+      </div>
+    );
+    const good = pct >= 75;
+    const warn = pct >= 40 && pct < 75;
+    const barColor = good ? BRAND.green : warn ? "#f59e0b" : "#dc2626";
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: BRAND.textSub }}>{label}</span>
+          <span style={{ fontSize: 12, color: barColor, fontWeight: 700 }}>{pct}%</span>
+        </div>
+        <div style={{ height: 6, background: BRAND.border, borderRadius: 6, overflow: "hidden", marginBottom: 4 }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 6, transition: "width 0.4s" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11, color: BRAND.muted }}>
+            {prefix === "$" ? formatMoney(booked, "$") : booked} booked
+          </span>
+          <span style={{ fontSize: 11, color: BRAND.muted }}>
+            Target: {prefix === "$" ? formatMoney(target, "$") : target}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-in">
-      <div className="stat-grid">
+      {/* ── Top stat row ── */}
+      <div className="stat-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <div className="stat-card">
           <div className="stat-label">Quarterly Rocks</div>
           <div className="stat-value">{rocks.length}</div>
@@ -841,18 +925,71 @@ function Dashboard({ business }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">Rock Completion</div>
-          <div className="stat-value">
-            {rocks.length ? Math.round(rocks.reduce((a, r) => a + r.progress, 0) / rocks.length) : 0}%
-          </div>
+          <div className="stat-value">{rocks.length ? Math.round(rocks.reduce((a, r) => a + r.progress, 0) / rocks.length) : 0}%</div>
           <div className="stat-sub">Average progress this quarter</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">New Clients {currentQ}</div>
+          <div className="stat-value" style={{ color: BRAND.green }}>{bookedClients}</div>
+          <div className="stat-sub">{qEntries.length - bookedClients} pending / potential</div>
         </div>
       </div>
 
-      <div className="grid-2">
+      {/* ── Quarterly Targets row ── */}
+      <div className="grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Quarterly Rocks</span>
+            <span className="card-title">New Business Targets — {currentQ}</span>
+            {(targetOneOff === 0 && targetOngoing === 0) && (
+              <span style={{ fontSize: 11, color: BRAND.muted }}>Set targets in New Business</span>
+            )}
           </div>
+          <div className="card-body">
+            <TargetBar label="One-Off / Upfront Revenue" booked={bookedOneOff} target={targetOneOff} pct={pctOneOff ?? 0} />
+            <TargetBar label="Ongoing Revenue" booked={bookedOngoing} target={targetOngoing} pct={pctOngoing ?? 0} />
+            <TargetBar label="New Clients" booked={bookedClients} target={targetClients} pct={pctClients ?? 0} prefix="" />
+            {bookedEntries.length > 0 && (
+              <div style={{ marginTop: 8, paddingTop: 12, borderTop: `1px solid ${BRAND.border}`, display: "flex", gap: 24 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: BRAND.muted, marginBottom: 2 }}>Total Booked One-Off</div>
+                  <div style={{ fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: BRAND.navy }}>{formatMoney(bookedOneOff, "$")}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: BRAND.muted, marginBottom: 2 }}>Total Booked Ongoing</div>
+                  <div style={{ fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: BRAND.green }}>{formatMoney(bookedOngoing, "$")}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><span className="card-title">Recent New Business</span></div>
+          <div className="card-body">
+            {qEntries.length === 0
+              ? <div className="empty-state"><div className="empty-state-title">No entries for {currentQ}</div><p>Add new business entries in the New Business section.</p></div>
+              : qEntries.slice(0, 6).map(e => (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 10, marginBottom: 10, borderBottom: `1px solid ${BRAND.border}` }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: e.status === "Booked" ? BRAND.green : e.status === "Lost" ? "#dc2626" : "#f59e0b", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: BRAND.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.clientName}</div>
+                    <div style={{ fontSize: 11, color: BRAND.muted }}>{e.adviser} · {e.clientType}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    {parseMoney(e.totalOneOff) > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.navy }}>{formatMoney(parseMoney(e.totalOneOff), "$")}</div>}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: e.status === "Booked" ? BRAND.green : e.status === "Lost" ? "#dc2626" : "#f59e0b", textTransform: "uppercase", letterSpacing: "0.06em" }}>{e.status}</span>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* ── Rocks + Issues ── */}
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><span className="card-title">Quarterly Rocks</span></div>
           <div className="card-body">
             {rocks.length === 0
               ? <div className="empty-state"><div className="empty-state-title">No rocks yet</div></div>
@@ -878,9 +1015,7 @@ function Dashboard({ business }) {
         </div>
 
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">Issues List</span>
-          </div>
+          <div className="card-header"><span className="card-title">Issues List</span></div>
           <div className="card-body">
             {issues.length === 0
               ? <div className="empty-state"><div className="empty-state-title">No open issues</div></div>
@@ -946,16 +1081,28 @@ function VTOPage({ business, onUpdate, canEdit }) {
 }
 
 function CoreValuesTab({ values, onChange, canEdit }) {
+  // values is now array of { text, image } objects (or plain strings for back-compat)
+  const normalised = values.map(v => typeof v === "string" ? { text: v, image: "" } : v);
   const [adding, setAdding] = useState(false);
   const [newVal, setNewVal] = useState("");
 
   function addValue() {
     if (newVal.trim()) {
-      onChange([...values, newVal.trim()]);
+      onChange([...normalised, { text: newVal.trim(), image: "" }]);
       setNewVal(""); setAdding(false);
     }
   }
-  function removeValue(i) { onChange(values.filter((_, idx) => idx !== i)); }
+  function removeValue(i) { onChange(normalised.filter((_, idx) => idx !== i)); }
+  function updateText(i, text) { onChange(normalised.map((v, idx) => idx === i ? { ...v, text } : v)); }
+  function updateImage(i, image) { onChange(normalised.map((v, idx) => idx === i ? { ...v, image } : v)); }
+
+  function handleImageUpload(i, e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => updateImage(i, ev.target.result);
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div className="vto-section">
@@ -963,18 +1110,41 @@ function CoreValuesTab({ values, onChange, canEdit }) {
         Core Values
         <span style={{ fontSize: 13, fontWeight: 400, color: BRAND.muted }}>What you stand for</span>
       </div>
-      <p className="text-muted mb-16">The handful of non-negotiable principles that define who you are and how you do business.</p>
+      <p className="text-muted mb-16">The handful of non-negotiable principles that define who you are and how you do business. Optionally add an image to each value.</p>
       <div className="vto-values-grid">
-        {values.map((v, i) => (
-          <div key={i} className="vto-value-chip">
-            <div className="vto-value-text">{v}</div>
-            {canEdit && (
-              <button onClick={() => removeValue(i)} style={{ background: "none", border: "none", color: BRAND.muted, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
-            )}
+        {normalised.map((v, i) => (
+          <div key={i} style={{ background: BRAND.offWhite, border: `1px solid ${BRAND.border}`, borderRadius: 10, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            {/* Image area */}
+            <div style={{ position: "relative", height: 100, background: BRAND.border + "44", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              {v.image
+                ? <img src={v.image} alt={v.text} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 28, opacity: 0.25 }}>🏆</span>
+              }
+              {canEdit && (
+                <label style={{ position: "absolute", bottom: 6, right: 6, background: BRAND.navy, color: "#fff", borderRadius: 6, padding: "3px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em" }}>
+                  {v.image ? "Change" : "+ Image"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleImageUpload(i, e)} />
+                </label>
+              )}
+              {canEdit && v.image && (
+                <button onClick={() => updateImage(i, "")} style={{ position: "absolute", top: 6, right: 6, background: "rgba(15,21,35,0.6)", border: "none", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 12, cursor: "pointer", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              )}
+            </div>
+            {/* Text + actions */}
+            <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              {canEdit
+                ? <input value={v.text} onChange={e => updateText(i, e.target.value)}
+                    style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, fontWeight: 500, color: BRAND.text, fontFamily: "'DM Sans', sans-serif" }} />
+                : <div className="vto-value-text">{v.text}</div>
+              }
+              {canEdit && (
+                <button onClick={() => removeValue(i)} style={{ background: "none", border: "none", color: BRAND.muted, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px", flexShrink: 0 }}>×</button>
+              )}
+            </div>
           </div>
         ))}
         {canEdit && !adding && (
-          <button className="vto-add-chip" onClick={() => setAdding(true)}>+ Add value</button>
+          <button className="vto-add-chip" onClick={() => setAdding(true)} style={{ minHeight: 140, display: "flex", alignItems: "center", justifyContent: "center" }}>+ Add value</button>
         )}
         {canEdit && adding && (
           <div className="vto-inline-input">
@@ -1282,51 +1452,82 @@ function RocksPage({ business, onUpdate, canEdit }) {
 // ─── Issues ───────────────────────────────────────────────────────────────────
 function IssuesPage({ business, onUpdate, canEdit }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [editIssue, setEditIssue] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", priority: "medium", raisedBy: "" });
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("active");
 
   const issues = business.issues || [];
+  const activeIssues = issues.filter(i => i.term !== "long");
+  const longTermIssues = issues.filter(i => i.term === "long");
 
-  function addIssue() {
+  function openAdd() { setEditIssue(null); setDraft({ title: "", notes: "", priority: "medium", raisedBy: "" }); setShowAdd(true); }
+  function openEdit(issue) { setEditIssue(issue); setDraft({ title: issue.title, notes: issue.notes || "", priority: issue.priority, raisedBy: issue.raisedBy || "" }); setShowAdd(true); }
+
+  function saveIssue() {
     if (!draft.title.trim()) return;
-    onUpdate({ ...business, issues: [...issues, { id: uid(), ...draft, createdAt: new Date().toISOString().slice(0, 10) }] });
+    if (editIssue) {
+      onUpdate({ ...business, issues: issues.map(i => i.id === editIssue.id ? { ...i, ...draft } : i) });
+    } else {
+      onUpdate({ ...business, issues: [...issues, { id: uid(), ...draft, term: "short", createdAt: new Date().toISOString().slice(0, 10) }] });
+    }
     setDraft({ title: "", notes: "", priority: "medium", raisedBy: "" });
-    setShowAdd(false);
+    setShowAdd(false); setEditIssue(null);
   }
 
-  function resolveIssue(id) {
-    onUpdate({ ...business, issues: issues.filter(i => i.id !== id) });
-  }
+  function resolveIssue(id) { onUpdate({ ...business, issues: issues.filter(i => i.id !== id) }); }
+  function deferIssue(id) { onUpdate({ ...business, issues: issues.map(i => i.id === id ? { ...i, term: "long" } : i) }); }
+  function restoreIssue(id) { onUpdate({ ...business, issues: issues.map(i => i.id === id ? { ...i, term: "short" } : i) }); }
 
-  const filtered = filter === "all" ? issues : issues.filter(i => i.priority === filter);
+  const displayed = filter === "active" ? activeIssues
+    : filter === "long" ? longTermIssues
+    : issues.filter(i => i.priority === filter && i.term !== "long");
 
   return (
     <div className="animate-in">
       <div className="flex-between mb-16">
-        <div style={{ display: "flex", gap: 8 }}>
-          {["all", "high", "medium", "low"].map(f => (
-            <button key={f} className={`btn btn-sm ${filter === f ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilter(f)}>
-              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-              {f !== "all" && <span style={{ marginLeft: 4, opacity: 0.7 }}>{issues.filter(i => i.priority === f).length}</span>}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { id: "active", label: "Active", count: activeIssues.length },
+            { id: "high", label: "High", count: activeIssues.filter(i => i.priority === "high").length },
+            { id: "medium", label: "Medium", count: activeIssues.filter(i => i.priority === "medium").length },
+            { id: "low", label: "Low", count: activeIssues.filter(i => i.priority === "low").length },
+            { id: "long", label: "🗓 Long Term", count: longTermIssues.length },
+          ].map(f => (
+            <button key={f.id} className={`btn btn-sm ${filter === f.id ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilter(f.id)}>
+              {f.label} <span style={{ marginLeft: 4, opacity: 0.7 }}>{f.count}</span>
             </button>
           ))}
         </div>
-        {canEdit && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Issue</button>}
+        {canEdit && <button className="btn btn-primary" onClick={openAdd}>+ Add Issue</button>}
       </div>
 
+      {filter === "long" && (
+        <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#854d0e" }}>
+          🗓 Long Term issues are deferred for review at the next Quarterly meeting. They won't appear in your active issues list.
+        </div>
+      )}
+
       <div className="issues-list">
-        {filtered.length === 0
-          ? <div className="empty-state"><div className="empty-state-icon">✅</div><div className="empty-state-title">No issues</div><p>All clear — or add issues to track and resolve.</p></div>
-          : filtered.map(i => (
+        {displayed.length === 0
+          ? <div className="empty-state"><div className="empty-state-icon">{filter === "long" ? "🗓" : "✅"}</div><div className="empty-state-title">{filter === "long" ? "No long term issues" : "No issues"}</div><p>{filter === "long" ? "Issues deferred to the next Quarterly will appear here." : "All clear — or add issues to track and resolve."}</p></div>
+          : displayed.map(i => (
             <div key={i.id} className="issue-item">
               <div className="issue-priority-dot" style={{ background: priorityColor(i.priority) }} />
-              <div>
+              <div style={{ flex: 1 }}>
                 <div className="issue-title">{i.title}</div>
                 <div className="issue-meta">{i.raisedBy && `${i.raisedBy} · `}{i.createdAt}{i.notes && ` · ${i.notes}`}</div>
               </div>
               <span className={`badge badge-${i.priority === "high" ? "red" : i.priority === "medium" ? "yellow" : "muted"}`}>{i.priority}</span>
+              {i.term === "long" && <span className="badge badge-muted">Long Term</span>}
               {canEdit && (
-                <button className="btn btn-ghost btn-sm" onClick={() => resolveIssue(i.id)} title="Mark resolved">✓ Resolve</button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(i)}>Edit</button>
+                  {i.term !== "long"
+                    ? <button className="btn btn-ghost btn-sm" onClick={() => deferIssue(i.id)}>🗓 Defer</button>
+                    : <button className="btn btn-ghost btn-sm" onClick={() => restoreIssue(i.id)}>↩ Restore</button>
+                  }
+                  <button className="btn btn-ghost btn-sm" onClick={() => resolveIssue(i.id)}>✓ Resolve</button>
+                </div>
               )}
             </div>
           ))
@@ -1334,8 +1535,8 @@ function IssuesPage({ business, onUpdate, canEdit }) {
       </div>
 
       {showAdd && (
-        <Modal title="Add Issue" onClose={() => setShowAdd(false)}
-          footer={<><button className="btn btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn btn-primary" onClick={addIssue}>Add Issue</button></>}>
+        <Modal title={editIssue ? "Edit Issue" : "Add Issue"} onClose={() => { setShowAdd(false); setEditIssue(null); }}
+          footer={<><button className="btn btn-ghost" onClick={() => { setShowAdd(false); setEditIssue(null); }}>Cancel</button><button className="btn btn-primary" onClick={saveIssue}>{editIssue ? "Save" : "Add Issue"}</button></>}>
           <div className="field"><label>Issue Title</label><input className="input" value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} placeholder="What's the issue?" autoFocus /></div>
           <div className="field"><label>Notes</label><textarea className="textarea" value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} placeholder="More context, root cause, ideas..." /></div>
           <div className="grid-2">
@@ -2542,39 +2743,121 @@ function getReviewPeriods() {
   return opts;
 }
 
-function PeoplePage({ business, onUpdate, canEdit }) {
+// ─── Team Page (People management only) ──────────────────────────────────────
+function TeamPage({ business, onUpdate, canEdit }) {
+  const people = business.people || [];
+  const [showAdd, setShowAdd] = useState(false);
+  const [editPerson, setEditPerson] = useState(null);
+  const [draft, setDraft] = useState({ name: "", role: "", reportsTo: "", startDate: "", employmentType: "Full-time", email: "" });
+
+  function openAdd() { setEditPerson(null); setDraft({ name: "", role: "", reportsTo: "", startDate: "", employmentType: "Full-time", email: "" }); setShowAdd(true); }
+  function openEdit(p) { setEditPerson(p); setDraft({ name: p.name, role: p.role || "", reportsTo: p.reportsTo || "", startDate: p.startDate || "", employmentType: p.employmentType || "Full-time", email: p.email || "" }); setShowAdd(true); }
+
+  function save() {
+    if (!draft.name.trim()) return;
+    if (editPerson) {
+      onUpdate({ ...business, people: people.map(p => p.id === editPerson.id ? { ...p, ...draft } : p) });
+    } else {
+      onUpdate({ ...business, people: [...people, { id: uid(), ...draft }] });
+    }
+    setShowAdd(false); setEditPerson(null);
+  }
+
+  function deletePerson(id) { onUpdate({ ...business, people: people.filter(p => p.id !== id) }); }
+
+  return (
+    <div className="animate-in">
+      <div className="flex-between mb-16">
+        <p className="text-muted">{people.length} team member{people.length !== 1 ? "s" : ""} — these appear in Org Chart and Performance Reviews</p>
+        {canEdit && <button className="btn btn-primary" onClick={openAdd}>+ Add Person</button>}
+      </div>
+
+      {people.length === 0
+        ? <div className="empty-state"><div className="empty-state-icon">👥</div><div className="empty-state-title">No team members yet</div><p>Add your first team member to get started. They'll appear in the Org Chart, Scorecard and Performance Reviews.</p></div>
+        : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {["Name", "Role", "Reports To", "Type", "Start Date", "Email", ""].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "10px 16px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}`, whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {people.map((p, i) => (
+                  <tr key={p.id} style={{ background: i % 2 === 0 ? BRAND.white : BRAND.offWhite, borderBottom: `1px solid ${BRAND.border}` }}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: BRAND.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(p.name)}</div>
+                        <span style={{ fontWeight: 600, color: BRAND.navy }}>{p.name}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: BRAND.textSub }}>{p.role || "—"}</td>
+                    <td style={{ padding: "12px 16px", color: BRAND.muted }}>{p.reportsTo || <span style={{ fontStyle: "italic" }}>Top level</span>}</td>
+                    <td style={{ padding: "12px 16px", color: BRAND.muted }}>{p.employmentType || "—"}</td>
+                    <td style={{ padding: "12px 16px", color: BRAND.muted }}>{p.startDate || "—"}</td>
+                    <td style={{ padding: "12px 16px", color: BRAND.muted }}>{p.email || "—"}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      {canEdit && (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(p)}>Edit</button>
+                          <button className="btn btn-danger btn-sm btn-icon" onClick={() => deletePerson(p.id)}>✕</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+
+      {showAdd && (
+        <Modal title={editPerson ? "Edit Team Member" : "Add Team Member"} onClose={() => { setShowAdd(false); setEditPerson(null); }}
+          footer={<><button className="btn btn-ghost" onClick={() => { setShowAdd(false); setEditPerson(null); }}>Cancel</button><button className="btn btn-primary" onClick={save}>{editPerson ? "Save" : "Add"}</button></>}>
+          <div className="field"><label>Full Name</label><input className="input" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Jane Smith" autoFocus /></div>
+          <div className="field"><label>Role / Title</label><input className="input" value={draft.role} onChange={e => setDraft(d => ({ ...d, role: e.target.value }))} placeholder="e.g. Financial Planner" /></div>
+          <div className="field">
+            <label>Reports To</label>
+            <select className="input" value={draft.reportsTo} onChange={e => setDraft(d => ({ ...d, reportsTo: e.target.value }))}>
+              <option value="">— No direct report (top of chart) —</option>
+              {people.filter(p => !editPerson || p.id !== editPerson.id).map(p => <option key={p.id} value={p.name}>{p.name}{p.role ? ` (${p.role})` : ""}</option>)}
+            </select>
+          </div>
+          <div className="grid-2">
+            <div className="field">
+              <label>Employment Type</label>
+              <select className="input" value={draft.employmentType} onChange={e => setDraft(d => ({ ...d, employmentType: e.target.value }))}>
+                <option>Full-time</option><option>Part-time</option><option>Casual</option><option>Contractor</option>
+              </select>
+            </div>
+            <div className="field"><label>Start Date</label><input className="input" type="month" value={draft.startDate} onChange={e => setDraft(d => ({ ...d, startDate: e.target.value }))} /></div>
+          </div>
+          <div className="field"><label>Email</label><input className="input" value={draft.email} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} placeholder="jane@company.com.au" /></div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Reviews Page (Performance reviews only) ──────────────────────────────────
+function ReviewsPage({ business, onUpdate, canEdit }) {
   const people = business.people || [];
   const reviews = business.reviews || {};
   const [view, setView] = useState("list");
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [selectedReviewId, setSelectedReviewId] = useState(null);
-  const [draftPerson, setDraftPerson] = useState({ name: "", role: "", reportsTo: "", startDate: "", employmentType: "Full-time", email: "" });
   const [draftReview, setDraftReview] = useState({});
-  const [showAddPerson, setShowAddPerson] = useState(false);
-  const [editPerson, setEditPerson] = useState(null);
   const PERIODS = getReviewPeriods();
 
-  function savePerson() {
-    if (!draftPerson.name.trim()) return;
-    if (editPerson) {
-      onUpdate({ ...business, people: people.map(p => p.id === editPerson.id ? { ...p, ...draftPerson } : p) });
-      setEditPerson(null);
-    } else {
-      onUpdate({ ...business, people: [...people, { id: uid(), ...draftPerson }] });
-    }
-    setDraftPerson({ name: "", role: "", reportsTo: "", startDate: "", employmentType: "Full-time", email: "" });
-    setShowAddPerson(false);
-  }
-
-  function openEdit(person) {
-    setEditPerson(person);
-    setDraftPerson({ name: person.name, role: person.role || "", reportsTo: person.reportsTo || "", startDate: person.startDate || "", employmentType: person.employmentType || "Full-time", email: person.email || "" });
-    setShowAddPerson(true);
-  }
-
-  function deletePerson(id) {
-    onUpdate({ ...business, people: people.filter(p => p.id !== id) });
-    if (selectedPerson?.id === id) { setSelectedPerson(null); setView("list"); }
+  function avgRating(personId) {
+    const pr = reviews[personId] || [];
+    if (!pr.length) return null;
+    const last = pr[pr.length - 1];
+    const vals = Object.values(last.ratings || {}).map(Number).filter(Boolean);
+    return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : null;
   }
 
   function startReview(person) {
@@ -2606,14 +2889,6 @@ function PeoplePage({ business, onUpdate, canEdit }) {
     onUpdate({ ...business, reviews: { ...reviews, [person.id]: updated } });
   }
 
-  function avgRating(personId) {
-    const pr = reviews[personId] || [];
-    if (!pr.length) return null;
-    const last = pr[pr.length - 1];
-    const vals = Object.values(last.ratings || {}).map(Number).filter(Boolean);
-    return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : null;
-  }
-
   // ── Review form
   if (view === "review") {
     const isExisting = !!selectedReviewId;
@@ -2636,16 +2911,14 @@ function PeoplePage({ business, onUpdate, canEdit }) {
           <div className="card-header"><span className="card-title">Review Details</span></div>
           <div className="card-body">
             <div className="grid-2">
-              <div className="field">
-                <label>Review Period</label>
+              <div className="field"><label>Review Period</label>
                 {canEdit ? (
                   <select className="input" value={draftReview.period || ""} onChange={e => setDraftReview(d => ({ ...d, period: e.target.value }))}>
                     {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 ) : <div style={{ fontSize: 14, fontWeight: 600, color: BRAND.navy }}>{draftReview.period || "—"}</div>}
               </div>
-              <div className="field">
-                <label>Reviewer</label>
+              <div className="field"><label>Reviewer</label>
                 {canEdit ? <input className="input" value={draftReview.reviewer || ""} onChange={e => setDraftReview(d => ({ ...d, reviewer: e.target.value }))} placeholder="Your name" /> : <div style={{ fontSize: 14, color: BRAND.text }}>{draftReview.reviewer || "—"}</div>}
               </div>
             </div>
@@ -2707,24 +2980,15 @@ function PeoplePage({ business, onUpdate, canEdit }) {
     );
   }
 
-  // ── Team list view
+  // ── Review list view
   return (
     <div className="animate-in">
-      <div className="flex-between mb-16">
-        <p className="text-muted">{people.length} team member{people.length !== 1 ? "s" : ""} — click a review chip to view it, or + Review to start a new one</p>
-        {canEdit && <button className="btn btn-primary" onClick={() => { setEditPerson(null); setDraftPerson({ name: "", role: "", reportsTo: "", startDate: "", employmentType: "Full-time", email: "" }); setShowAddPerson(true); }}>+ Add Person</button>}
-      </div>
-
       {people.length === 0
-        ? <div className="empty-state"><div className="empty-state-icon">👥</div><div className="empty-state-title">No team members yet</div><p>Add your first team member to get started. They'll also appear in the Org Chart.</p></div>
+        ? <div className="empty-state"><div className="empty-state-icon">⭐</div><div className="empty-state-title">No team members yet</div><p>Add team members in the Team section first, then come back to complete reviews.</p></div>
         : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {people.map(person => {
-              const personReviews = (reviews[person.id] || []).slice().sort((a, b) => {
-                // Sort by FY descending, then Q descending
-                const pa = a.period || ""; const pb = b.period || "";
-                return pb.localeCompare(pa);
-              });
+              const personReviews = (reviews[person.id] || []).slice().sort((a, b) => (b.period || "").localeCompare(a.period || ""));
               const avg = avgRating(person.id);
               return (
                 <div key={person.id} className="card">
@@ -2735,11 +2999,7 @@ function PeoplePage({ business, onUpdate, canEdit }) {
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 15, color: BRAND.navy }}>{person.name}</div>
-                        <div style={{ fontSize: 13, color: BRAND.muted, marginTop: 2 }}>
-                          {person.role}{person.reportsTo ? ` · Reports to: ${person.reportsTo}` : ""}{person.employmentType ? ` · ${person.employmentType}` : ""}{person.startDate ? ` · Started ${person.startDate}` : ""}
-                        </div>
-                        {person.email && <div style={{ fontSize: 12, color: BRAND.muted }}>{person.email}</div>}
-                        {/* Review period chips — grouped by FY */}
+                        <div style={{ fontSize: 13, color: BRAND.muted, marginTop: 2 }}>{person.role}{person.employmentType ? ` · ${person.employmentType}` : ""}</div>
                         {personReviews.length > 0 && (
                           <div style={{ marginTop: 10 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: BRAND.muted, marginBottom: 6 }}>Reviews</div>
@@ -2766,9 +3026,7 @@ function PeoplePage({ business, onUpdate, canEdit }) {
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         {avg && <span style={{ fontSize: 20, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: ratingColor(String(Math.round(Number(avg)))) }}>{avg}★</span>}
-                        {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => openEdit(person)}>Edit</button>}
                         {canEdit && <button className="btn btn-primary btn-sm" onClick={() => startReview(person)}>+ Review</button>}
-                        {canEdit && <button className="btn btn-danger btn-sm" onClick={() => deletePerson(person.id)}>✕</button>}
                       </div>
                     </div>
                   </div>
@@ -2776,35 +3034,14 @@ function PeoplePage({ business, onUpdate, canEdit }) {
               );
             })}
           </div>
-        )}
-
-      {showAddPerson && (
-        <Modal title={editPerson ? "Edit Team Member" : "Add Team Member"} onClose={() => { setShowAddPerson(false); setEditPerson(null); }}
-          footer={<><button className="btn btn-ghost" onClick={() => { setShowAddPerson(false); setEditPerson(null); }}>Cancel</button><button className="btn btn-primary" onClick={savePerson}>{editPerson ? "Save" : "Add"}</button></>}>
-          <div className="field"><label>Full Name</label><input className="input" value={draftPerson.name} onChange={e => setDraftPerson(d => ({ ...d, name: e.target.value }))} placeholder="Jane Smith" /></div>
-          <div className="field"><label>Role / Title</label><input className="input" value={draftPerson.role} onChange={e => setDraftPerson(d => ({ ...d, role: e.target.value }))} placeholder="e.g. Financial Planner" /></div>
-          <div className="field">
-            <label>Reports To</label>
-            <select className="input" value={draftPerson.reportsTo} onChange={e => setDraftPerson(d => ({ ...d, reportsTo: e.target.value }))}>
-              <option value="">— No direct report (top of chart) —</option>
-              {(people || []).filter(p => p && p.id && (!editPerson || p.id !== editPerson.id)).map(p => <option key={p.id} value={p.name}>{p.name}{p.role ? ` (${p.role})` : ""}</option>)}
-            </select>
-          </div>
-          <div className="grid-2">
-            <div className="field">
-              <label>Employment Type</label>
-              <select className="input" value={draftPerson.employmentType} onChange={e => setDraftPerson(d => ({ ...d, employmentType: e.target.value }))}>
-                <option>Full-time</option><option>Part-time</option><option>Casual</option><option>Contractor</option>
-              </select>
-            </div>
-            <div className="field"><label>Start Date</label><input className="input" type="month" value={draftPerson.startDate} onChange={e => setDraftPerson(d => ({ ...d, startDate: e.target.value }))} /></div>
-          </div>
-          <div className="field"><label>Email</label><input className="input" value={draftPerson.email} onChange={e => setDraftPerson(d => ({ ...d, email: e.target.value }))} placeholder="jane@company.com.au" /></div>
-        </Modal>
-      )}
+        )
+      }
     </div>
   );
 }
+
+
+
 
 // ─── Org Chart ────────────────────────────────────────────────────────────────
 function OrgChartPage({ business, onUpdate, canEdit }) {
@@ -3040,20 +3277,798 @@ function OrgChartPage({ business, onUpdate, canEdit }) {
 }
 
 
-// ─── App Shell ────────────────────────────────────────────────────────────────
+// ─── Scorecard ────────────────────────────────────────────────────────────────
+function getScorecardWeeks(n = 13) {
+  const periods = [];
+  const now = new Date();
+  const day = now.getDay();
+  const lastSun = new Date(now);
+  lastSun.setDate(now.getDate() - day);
+  for (let i = n - 1; i >= 0; i--) {
+    const end = new Date(lastSun);
+    end.setDate(lastSun.getDate() - i * 7);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    periods.push({
+      id: end.toISOString().slice(0, 10),
+      label: `${start.getDate()} ${start.toLocaleString("default", { month: "short" })}`,
+      sublabel: `${end.getDate()} ${end.toLocaleString("default", { month: "short" })}`,
+    });
+  }
+  return periods;
+}
+
+function scorecardStatus(value, goal, goalType) {
+  if (value === "" || value === null || value === undefined) return "empty";
+  const v = parseFloat(value);
+  const g = parseFloat(goal);
+  if (isNaN(v) || isNaN(g)) return "empty";
+  if (goalType === "≥") return v >= g ? "green" : v >= g * 0.8 ? "yellow" : "red";
+  if (goalType === "≤") return v <= g ? "green" : v <= g * 1.2 ? "yellow" : "red";
+  return v === g ? "green" : "yellow";
+}
+
+const SC_STATUS_COLORS = { green: BRAND.green, yellow: "#f59e0b", red: "#dc2626", empty: BRAND.border };
+
+function ScorecardPage({ business, onUpdate, canEdit }) {
+  const scorecard = business.scorecard || { metrics: [] };
+  const metrics = scorecard.metrics || [];
+  const people = business.people || [];
+  const [showAddMetric, setShowAddMetric] = useState(false);
+  const [editMetric, setEditMetric] = useState(null);
+  const [metricDraft, setMetricDraft] = useState({ title: "", who: "", goalType: "≥", goal: "" });
+
+  const periods = getScorecardWeeks(13);
+  const visiblePeriods = periods.slice(-8);
+
+  function saveMetric() {
+    if (!metricDraft.title.trim()) return;
+    const updated = { ...scorecard };
+    if (editMetric) {
+      updated.metrics = metrics.map(m => m.id === editMetric.id ? { ...m, ...metricDraft } : m);
+    } else {
+      updated.metrics = [...metrics, { id: uid(), ...metricDraft, data: {} }];
+    }
+    onUpdate({ ...business, scorecard: updated });
+    setShowAddMetric(false); setEditMetric(null);
+    setMetricDraft({ title: "", who: "", goalType: "≥", goal: "" });
+  }
+
+  function deleteMetric(id) {
+    onUpdate({ ...business, scorecard: { ...scorecard, metrics: metrics.filter(m => m.id !== id) } });
+  }
+
+  function setValue(metricId, periodId, value) {
+    const updated = { ...scorecard };
+    updated.metrics = metrics.map(m => {
+      if (m.id !== metricId) return m;
+      return { ...m, data: { ...(m.data || {}), [periodId]: value } };
+    });
+    onUpdate({ ...business, scorecard: updated });
+  }
+
+  function openEdit(m) {
+    setEditMetric(m);
+    setMetricDraft({ title: m.title, who: m.who || "", goalType: m.goalType || "≥", goal: m.goal || "" });
+    setShowAddMetric(true);
+  }
+
+  function rollingSum(m) {
+    const vals = visiblePeriods.map(p => parseFloat((m.data || {})[p.id] || "")).filter(v => !isNaN(v));
+    if (vals.length === 0) return "—";
+    return vals.reduce((a, b) => a + b, 0).toLocaleString();
+  }
+
+  return (
+    <div className="animate-in">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <p className="text-muted">Weekly numbers — last 8 weeks shown · green = on target, amber = within 20%, red = off target</p>
+        {canEdit && (
+          <button className="btn btn-primary"
+            onClick={() => { setEditMetric(null); setMetricDraft({ title: "", who: "", goalType: "≥", goal: "" }); setShowAddMetric(true); }}>
+            + Add Metric
+          </button>
+        )}
+      </div>
+
+      {metrics.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">📊</div>
+          <div className="empty-state-title">No metrics yet</div>
+          <p>Add your first weekly metric to start tracking numbers.</p>
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 700 }}>
+            <thead>
+              <tr style={{ background: BRAND.offWhite }}>
+                <th style={{ textAlign: "left", padding: "10px 14px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}`, width: 40 }}>Who</th>
+                <th style={{ textAlign: "left", padding: "10px 14px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}` }}>Metric</th>
+                <th style={{ textAlign: "center", padding: "10px 14px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}`, whiteSpace: "nowrap" }}>Goal</th>
+                <th style={{ textAlign: "center", padding: "10px 14px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}`, whiteSpace: "nowrap" }}>Sum</th>
+                {visiblePeriods.map(p => (
+                  <th key={p.id} style={{ textAlign: "center", padding: "8px 10px", color: BRAND.muted, fontWeight: 600, fontSize: 11, borderBottom: `2px solid ${BRAND.border}`, minWidth: 72, whiteSpace: "nowrap" }}>
+                    <div>{p.label}</div>
+                    <div style={{ fontWeight: 400, fontSize: 10 }}>{p.sublabel}</div>
+                  </th>
+                ))}
+                {canEdit && <th style={{ borderBottom: `2px solid ${BRAND.border}`, width: 60 }} />}
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((m, i) => (
+                <tr key={m.id} style={{ background: i % 2 === 0 ? BRAND.white : BRAND.offWhite, borderBottom: `1px solid ${BRAND.border}` }}>
+                  <td style={{ padding: "10px 14px" }}>
+                    {m.who ? (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: BRAND.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }} title={m.who}>
+                        {initials(m.who)}
+                      </div>
+                    ) : (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: BRAND.border }} />
+                    )}
+                  </td>
+                  <td style={{ padding: "10px 14px", fontWeight: 500, color: BRAND.navy }}>{m.title}</td>
+                  <td style={{ padding: "10px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 12, color: BRAND.textSub, fontWeight: 600 }}>{m.goalType} {m.goal}</span>
+                  </td>
+                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                    <span style={{ fontSize: 12, color: BRAND.muted }}>{rollingSum(m)}</span>
+                  </td>
+                  {visiblePeriods.map(p => {
+                    const val = (m.data || {})[p.id] ?? "";
+                    const status = scorecardStatus(val, m.goal, m.goalType);
+                    return (
+                      <td key={p.id} style={{ padding: "6px 8px", textAlign: "center" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: SC_STATUS_COLORS[status] }} />
+                          {canEdit ? (
+                            <input value={val} onChange={e => setValue(m.id, p.id, e.target.value)}
+                              style={{ width: 52, textAlign: "center", background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 4, padding: "3px 4px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: BRAND.text, outline: "none" }}
+                              placeholder="—" />
+                          ) : (
+                            <span style={{ fontSize: 12, color: val ? BRAND.text : BRAND.muted, fontWeight: val ? 500 : 400 }}>{val || "—"}</span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  {canEdit && (
+                    <td style={{ padding: "6px 10px" }}>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(m)} title="Edit">✎</button>
+                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => deleteMetric(m.id)} title="Delete">✕</button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 12, color: BRAND.muted, alignItems: "center" }}>
+        {[["green", "On target"], ["yellow", "Near target"], ["red", "Off target"], ["empty", "No data"]].map(([s, label]) => (
+          <span key={s} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: SC_STATUS_COLORS[s], display: "inline-block" }} />
+            {label}
+          </span>
+        ))}
+      </div>
+
+      {/* Add/Edit Modal */}
+      {showAddMetric && (
+        <Modal title={editMetric ? "Edit Metric" : "Add Metric"} onClose={() => { setShowAddMetric(false); setEditMetric(null); }}
+          footer={<><button className="btn btn-ghost" onClick={() => { setShowAddMetric(false); setEditMetric(null); }}>Cancel</button><button className="btn btn-primary" onClick={saveMetric}>{editMetric ? "Save" : "Add Metric"}</button></>}>
+          <div className="field"><label>Metric Name</label>
+            <input className="input" value={metricDraft.title} onChange={e => setMetricDraft(d => ({ ...d, title: e.target.value }))} placeholder="e.g. New client calls made" autoFocus />
+          </div>
+          <div className="field">
+            <label>Owner (Who)</label>
+            <select className="input" value={metricDraft.who} onChange={e => setMetricDraft(d => ({ ...d, who: e.target.value }))}>
+              <option value="">— Unassigned —</option>
+              {people.map(p => <option key={p.id} value={p.name}>{p.name}{p.role ? ` — ${p.role}` : ""}</option>)}
+            </select>
+            {people.length === 0 && <p style={{ fontSize: 12, color: BRAND.muted, marginTop: 4 }}>Add team members in the Team section to assign metrics.</p>}
+          </div>
+          <div className="grid-2">
+            <div className="field"><label>Goal Type</label>
+              <select className="input" value={metricDraft.goalType} onChange={e => setMetricDraft(d => ({ ...d, goalType: e.target.value }))}>
+                <option value="≥">≥ (at least)</option>
+                <option value="≤">≤ (no more than)</option>
+                <option value="=">=  (exactly)</option>
+              </select>
+            </div>
+            <div className="field"><label>Goal Value</label>
+              <input className="input" value={metricDraft.goal} onChange={e => setMetricDraft(d => ({ ...d, goal: e.target.value }))} placeholder="e.g. 5" />
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+
+
+const NB_QUARTERS = (() => {
+  const opts = [];
+  const now = new Date();
+  const fyEnd = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+  for (let fy = fyEnd; fy >= fyEnd - 2; fy--) {
+    opts.push(`Q4 FY${fy}`, `Q3 FY${fy}`, `Q2 FY${fy}`, `Q1 FY${fy}`);
+  }
+  return opts;
+})();
+
+const NB_STATUSES = ["Booked", "Potential", "Lost"];
+const NB_TYPES = ["Retirement", "PAYG", "SMSF", "Investment", "Insurance", "Business", "Other"];
+
+const EMPTY_NB = {
+  adviser: "", clientName: "", startingQ: NB_QUARTERS[0],
+  newExisting: "New", clientType: "Retirement", referrerName: "", status: "Potential",
+  initialFee: "", insuranceUF: "", totalOneOff: "", ongoing: "",
+  fum: "", insuranceOG: "", totalOngoing: "",
+};
+
+function autoCalcNB(d) {
+  const initial = parseMoney(d.initialFee) || 0;
+  const insUF = parseMoney(d.insuranceUF) || 0;
+  const totalOneOff = initial + insUF;
+  const ongoing = parseMoney(d.ongoing) || 0;
+  const insOG = parseMoney(d.insuranceOG) || 0;
+  const totalOngoing = ongoing + insOG;
+  return { ...d, totalOneOff: totalOneOff > 0 ? String(totalOneOff) : d.totalOneOff, totalOngoing: totalOngoing > 0 ? String(totalOngoing) : d.totalOngoing };
+}
+
+function NewBusinessPage({ business, onUpdate, canEdit }) {
+  const entries = business.newBusiness || [];
+  const targets = business.newBusinessTargets || {};
+  const [tab, setTab] = useState("pipeline");
+  const [filterQ, setFilterQ] = useState(NB_QUARTERS[0]);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [draft, setDraft] = useState(EMPTY_NB);
+  const [targetDraft, setTargetDraft] = useState({});
+  const [editTargets, setEditTargets] = useState(false);
+
+  function openAdd() { setEditId(null); setDraft({ ...EMPTY_NB, startingQ: filterQ }); setShowAdd(true); }
+  function openEdit(e) { setEditId(e.id); setDraft({ ...e }); setShowAdd(true); }
+
+  function setField(k, v) {
+    setDraft(d => {
+      const next = { ...d, [k]: v };
+      if (["initialFee", "insuranceUF", "ongoing", "insuranceOG"].includes(k)) return autoCalcNB(next);
+      return next;
+    });
+  }
+
+  function saveEntry() {
+    if (!draft.clientName.trim()) return;
+    const toSave = autoCalcNB(draft);
+    if (editId) {
+      onUpdate({ ...business, newBusiness: entries.map(e => e.id === editId ? { ...e, ...toSave } : e) });
+    } else {
+      onUpdate({ ...business, newBusiness: [...entries, { id: uid(), ...toSave }] });
+    }
+    setShowAdd(false); setEditId(null);
+  }
+
+  function deleteEntry(id) { onUpdate({ ...business, newBusiness: entries.filter(e => e.id !== id) }); }
+
+  function saveTargets() {
+    onUpdate({ ...business, newBusinessTargets: { ...targets, ...targetDraft } });
+    setEditTargets(false);
+  }
+
+  // Filter
+  const filtered = entries.filter(e => {
+    if (e.startingQ !== filterQ) return false;
+    if (filterStatus !== "all" && e.status !== filterStatus) return false;
+    return true;
+  });
+
+  // Summary for selected quarter
+  const booked = filtered.filter(e => e.status === "Booked");
+  const potential = filtered.filter(e => e.status === "Potential");
+  const lost = filtered.filter(e => e.status === "Lost");
+  const sumBooked1 = booked.reduce((a, e) => a + (parseMoney(e.totalOneOff) || 0), 0);
+  const sumBookedOG = booked.reduce((a, e) => a + (parseMoney(e.totalOngoing) || 0), 0);
+  const sumPot1 = potential.reduce((a, e) => a + (parseMoney(e.totalOneOff) || 0), 0);
+  const sumPotOG = potential.reduce((a, e) => a + (parseMoney(e.totalOngoing) || 0), 0);
+
+  const tgt1 = parseMoney(targets.oneOffTarget) || 0;
+  const tgtOG = parseMoney(targets.ongoingTarget) || 0;
+  const tgtCl = parseMoney(targets.clientTarget) || 0;
+
+  const CellInput = ({ k, placeholder, type = "text" }) => (
+    canEdit
+      ? <input className="input" value={draft[k] || ""} onChange={e => setField(k, e.target.value)} placeholder={placeholder} style={{ fontSize: 13 }} />
+      : <div style={{ fontSize: 13, color: BRAND.text }}>{draft[k] || "—"}</div>
+  );
+
+  const statusColor = s => s === "Booked" ? BRAND.green : s === "Lost" ? "#dc2626" : "#f59e0b";
+
+  return (
+    <div className="animate-in">
+      <div className="tabs">
+        {[{ id: "pipeline", label: "Pipeline" }, { id: "summary", label: "Summary" }, { id: "targets", label: "Targets" }].map(t => (
+          <button key={t.id} className={`tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── PIPELINE TAB ── */}
+      {tab === "pipeline" && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+            {/* Quarter filter */}
+            <select className="input" value={filterQ} onChange={e => setFilterQ(e.target.value)}
+              style={{ width: "auto", fontSize: 13, padding: "6px 28px 6px 10px" }}>
+              {NB_QUARTERS.map(q => <option key={q} value={q}>{q}</option>)}
+            </select>
+            {/* Status filter */}
+            <div style={{ display: "flex", gap: 6 }}>
+              {["all", ...NB_STATUSES].map(s => (
+                <button key={s} className={`btn btn-sm ${filterStatus === s ? "btn-primary" : "btn-ghost"}`}
+                  onClick={() => setFilterStatus(s)}>
+                  {s === "all" ? "All" : s}
+                  {s !== "all" && <span style={{ marginLeft: 4, opacity: 0.7 }}>{entries.filter(e => e.startingQ === filterQ && e.status === s).length}</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{ flex: 1 }} />
+            {/* Quick summary badges */}
+            <div style={{ display: "flex", gap: 8, fontSize: 12 }}>
+              <span style={{ background: BRAND.green + "18", color: BRAND.green, padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>
+                {booked.length} Booked · {formatMoney(sumBooked1, "$")}
+              </span>
+              <span style={{ background: "#f59e0b18", color: "#f59e0b", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>
+                {potential.length} Potential · {formatMoney(sumPot1, "$")}
+              </span>
+            </div>
+            {canEdit && <button className="btn btn-primary" onClick={openAdd}>+ Add Entry</button>}
+          </div>
+
+          {filtered.length === 0
+            ? <div className="empty-state"><div className="empty-state-icon">📋</div><div className="empty-state-title">No entries for {filterQ}</div><p>Add new business entries to start tracking.</p></div>
+            : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      {["Adviser", "Client Name", "New/Existing", "Client Type", "Referrer", "Status", "One-Off", "Ongoing", "Total Ongoing", ""].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: BRAND.muted, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `2px solid ${BRAND.border}`, whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((e, i) => (
+                      <tr key={e.id} style={{ background: i % 2 === 0 ? BRAND.white : BRAND.offWhite, borderBottom: `1px solid ${BRAND.border}` }}>
+                        <td style={{ padding: "10px 12px", color: BRAND.textSub }}>{e.adviser || "—"}</td>
+                        <td style={{ padding: "10px 12px", fontWeight: 600, color: BRAND.navy }}>{e.clientName}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.muted }}>{e.newExisting}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.textSub }}>{e.clientType}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.muted }}>{e.referrerName || "—"}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span style={{ background: statusColor(e.status) + "18", color: statusColor(e.status), padding: "2px 8px", borderRadius: 12, fontWeight: 700, fontSize: 11 }}>{e.status}</span>
+                        </td>
+                        <td style={{ padding: "10px 12px", color: BRAND.navy, fontWeight: 500 }}>{parseMoney(e.totalOneOff) ? formatMoney(parseMoney(e.totalOneOff), "$") : "—"}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.green, fontWeight: 500 }}>{parseMoney(e.ongoing) ? formatMoney(parseMoney(e.ongoing), "$") : "—"}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.green, fontWeight: 600 }}>{parseMoney(e.totalOngoing) ? formatMoney(parseMoney(e.totalOngoing), "$") : "—"}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          {canEdit && (
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button className="btn btn-ghost btn-sm" onClick={() => openEdit(e)}>Edit</button>
+                              <button className="btn btn-danger btn-sm btn-icon" onClick={() => deleteEntry(e.id)}>✕</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {filtered.length > 0 && (
+                    <tfoot>
+                      <tr style={{ background: BRAND.navyLight, fontWeight: 700 }}>
+                        <td colSpan={6} style={{ padding: "10px 12px", color: BRAND.textSub, fontSize: 12 }}>TOTALS ({filtered.length} entries)</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.navy }}>{formatMoney(filtered.reduce((a, e) => a + (parseMoney(e.totalOneOff) || 0), 0), "$")}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.green }}>{formatMoney(filtered.reduce((a, e) => a + (parseMoney(e.ongoing) || 0), 0), "$")}</td>
+                        <td style={{ padding: "10px 12px", color: BRAND.green }}>{formatMoney(filtered.reduce((a, e) => a + (parseMoney(e.totalOngoing) || 0), 0), "$")}</td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            )
+          }
+        </>
+      )}
+
+      {/* ── SUMMARY TAB ── */}
+      {tab === "summary" && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+            <select className="input" value={filterQ} onChange={e => setFilterQ(e.target.value)}
+              style={{ width: "auto", fontSize: 13, padding: "6px 28px 6px 10px" }}>
+              {NB_QUARTERS.map(q => <option key={q} value={q}>{q}</option>)}
+            </select>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Booked", entries: booked, sumOO: sumBooked1, sumOG: sumBookedOG, color: BRAND.green },
+              { label: "Potential", entries: potential, sumOO: sumPot1, sumOG: sumPotOG, color: "#f59e0b" },
+              { label: "Lost", entries: lost, sumOO: lost.reduce((a,e)=>a+(parseMoney(e.totalOneOff)||0),0), sumOG: lost.reduce((a,e)=>a+(parseMoney(e.totalOngoing)||0),0), color: "#dc2626" },
+            ].map(col => (
+              <div key={col.label} className="card">
+                <div className="card-header" style={{ paddingBottom: 12 }}>
+                  <span className="card-title" style={{ color: col.color }}>{col.label}</span>
+                  <span style={{ fontSize: 22, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: col.color }}>{col.entries.length}</span>
+                </div>
+                <div className="card-body">
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: BRAND.muted, marginBottom: 2 }}>One-Off / Upfront</div>
+                    <div style={{ fontSize: 20, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: BRAND.navy }}>{formatMoney(col.sumOO, "$")}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: BRAND.muted, marginBottom: 2 }}>Ongoing (p.a.)</div>
+                    <div style={{ fontSize: 20, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: col.color }}>{formatMoney(col.sumOG, "$")}</div>
+                  </div>
+                  {col.entries.length > 0 && (
+                    <div style={{ marginTop: 12, borderTop: `1px solid ${BRAND.border}`, paddingTop: 10 }}>
+                      {col.entries.map(e => (
+                        <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                          <span style={{ color: BRAND.textSub }}>{e.clientName}</span>
+                          <span style={{ color: BRAND.navy, fontWeight: 500 }}>{formatMoney(parseMoney(e.totalOneOff) || 0, "$")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Progress vs targets */}
+          {(tgt1 > 0 || tgtOG > 0 || tgtCl > 0) && (
+            <div className="card">
+              <div className="card-header"><span className="card-title">Progress vs Targets — {filterQ}</span></div>
+              <div className="card-body">
+                {[
+                  { label: "One-Off Revenue", booked: sumBooked1, target: tgt1, prefix: "$" },
+                  { label: "Ongoing Revenue", booked: sumBookedOG, target: tgtOG, prefix: "$" },
+                  { label: "New Clients", booked: booked.length, target: tgtCl, prefix: "" },
+                ].filter(r => r.target > 0).map(r => {
+                  const pct = Math.min(100, Math.round((r.booked / r.target) * 100));
+                  const col = pct >= 75 ? BRAND.green : pct >= 40 ? "#f59e0b" : "#dc2626";
+                  return (
+                    <div key={r.label} style={{ marginBottom: 20 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: BRAND.textSub }}>{r.label}</span>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: col }}>{pct}%</span>
+                      </div>
+                      <div style={{ height: 8, background: BRAND.border, borderRadius: 8, overflow: "hidden", marginBottom: 4 }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: col, borderRadius: 8, transition: "width 0.4s" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: BRAND.muted }}>
+                        <span>{r.prefix === "$" ? formatMoney(r.booked, "$") : r.booked} booked</span>
+                        <span>Target: {r.prefix === "$" ? formatMoney(r.target, "$") : r.target}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── TARGETS TAB ── */}
+      {tab === "targets" && (
+        <div className="card" style={{ maxWidth: 560 }}>
+          <div className="card-header">
+            <span className="card-title">Quarterly Targets</span>
+            {canEdit && !editTargets && <button className="btn btn-primary btn-sm" onClick={() => { setTargetDraft({ ...targets }); setEditTargets(true); }}>Edit Targets</button>}
+            {canEdit && editTargets && <><button className="btn btn-ghost btn-sm" onClick={() => setEditTargets(false)}>Cancel</button><button className="btn btn-primary btn-sm" onClick={saveTargets}>Save</button></>}
+          </div>
+          <div className="card-body">
+            <p className="text-muted mb-16">Set quarterly targets for new business. These appear on the Dashboard and Summary.</p>
+            {[
+              { key: "oneOffTarget", label: "One-Off / Upfront Revenue Target", placeholder: "e.g. 75000" },
+              { key: "ongoingTarget", label: "Ongoing Revenue Target (p.a.)", placeholder: "e.g. 100000" },
+              { key: "clientTarget", label: "New Client Number Target", placeholder: "e.g. 8" },
+            ].map(f => (
+              <div key={f.key} className="field">
+                <label>{f.label}</label>
+                {editTargets
+                  ? <input className="input" value={targetDraft[f.key] || ""} onChange={e => setTargetDraft(d => ({ ...d, [f.key]: e.target.value }))} placeholder={f.placeholder} />
+                  : <div style={{ fontSize: 22, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: targets[f.key] ? BRAND.navy : BRAND.muted }}>
+                      {targets[f.key] ? (f.key === "clientTarget" ? targets[f.key] : formatMoney(parseMoney(targets[f.key]), "$")) : "Not set"}
+                    </div>
+                }
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD / EDIT MODAL ── */}
+      {showAdd && (
+        <Modal title={editId ? "Edit Entry" : "Add New Business"} onClose={() => { setShowAdd(false); setEditId(null); }}
+          footer={<><button className="btn btn-ghost" onClick={() => { setShowAdd(false); setEditId(null); }}>Cancel</button><button className="btn btn-primary" onClick={saveEntry}>{editId ? "Save" : "Add Entry"}</button></>}>
+          <div className="grid-2">
+            <div className="field"><label>Adviser</label><input className="input" value={draft.adviser} onChange={e => setField("adviser", e.target.value)} placeholder="Adviser name" /></div>
+            <div className="field"><label>Client Name</label><input className="input" value={draft.clientName} onChange={e => setField("clientName", e.target.value)} placeholder="Client name" /></div>
+          </div>
+          <div className="grid-2">
+            <div className="field"><label>Starting Quarter</label>
+              <select className="input" value={draft.startingQ} onChange={e => setField("startingQ", e.target.value)}>
+                {NB_QUARTERS.map(q => <option key={q} value={q}>{q}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>New / Existing</label>
+              <select className="input" value={draft.newExisting} onChange={e => setField("newExisting", e.target.value)}>
+                <option>New</option><option>Existing</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid-2">
+            <div className="field"><label>Client Type</label>
+              <select className="input" value={draft.clientType} onChange={e => setField("clientType", e.target.value)}>
+                {NB_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Referrer Name</label><input className="input" value={draft.referrerName} onChange={e => setField("referrerName", e.target.value)} placeholder="Optional" /></div>
+          </div>
+          <div className="field"><label>Status</label>
+            <select className="input" value={draft.status} onChange={e => setField("status", e.target.value)}>
+              {NB_STATUSES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ borderTop: `1px solid ${BRAND.border}`, margin: "16px 0", paddingTop: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: BRAND.muted, marginBottom: 12 }}>Fees</div>
+            <div className="grid-2">
+              <div className="field"><label>Initial Fee</label><input className="input" value={draft.initialFee} onChange={e => setField("initialFee", e.target.value)} placeholder="e.g. 4000" /></div>
+              <div className="field"><label>Insurance Upfront</label><input className="input" value={draft.insuranceUF} onChange={e => setField("insuranceUF", e.target.value)} placeholder="e.g. 1200" /></div>
+            </div>
+            <div className="field">
+              <label>Total One-Off <span style={{ color: BRAND.green, fontSize: 10, fontWeight: 700 }}>AUTO</span></label>
+              <div style={{ fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: BRAND.navy, padding: "6px 0" }}>
+                {parseMoney(draft.totalOneOff) > 0 ? formatMoney(parseMoney(draft.totalOneOff), "$") : <span style={{ color: BRAND.muted, fontSize: 14, fontFamily: "inherit" }}>Calculated from Initial Fee + Insurance UF</span>}
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="field"><label>Ongoing Fee (p.a.)</label><input className="input" value={draft.ongoing} onChange={e => setField("ongoing", e.target.value)} placeholder="e.g. 5000" /></div>
+              <div className="field"><label>FUM</label><input className="input" value={draft.fum} onChange={e => setField("fum", e.target.value)} placeholder="e.g. 500000" /></div>
+            </div>
+            <div className="grid-2">
+              <div className="field"><label>Insurance Ongoing</label><input className="input" value={draft.insuranceOG} onChange={e => setField("insuranceOG", e.target.value)} placeholder="e.g. 800" /></div>
+              <div className="field">
+                <label>Total Ongoing <span style={{ color: BRAND.green, fontSize: 10, fontWeight: 700 }}>AUTO</span></label>
+                <div style={{ fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: BRAND.green, padding: "6px 0" }}>
+                  {parseMoney(draft.totalOngoing) > 0 ? formatMoney(parseMoney(draft.totalOngoing), "$") : <span style={{ color: BRAND.muted, fontSize: 14, fontFamily: "inherit" }}>Ongoing + Insurance OG</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Meetings ─────────────────────────────────────────────────────────────────
+const MEETING_TYPES = [
+  { id: "weekly", label: "Weekly L10", icon: "📅", desc: "Level 10 Meeting — 90 min structured weekly meeting" },
+  { id: "monthly", label: "Monthly", icon: "📆", desc: "Monthly management meeting — financial & team review" },
+  { id: "quarterly", label: "Quarterly", icon: "🗓", desc: "Quarterly planning day — review, reset rocks & goals" },
+  { id: "annual", label: "Annual", icon: "🏆", desc: "Annual planning — full VTO review and year ahead" },
+];
+
+// EOS L10 Weekly Agenda — standard items
+const L10_AGENDA = [
+  { id: "segue", title: "Segue", duration: 5, description: "Good news — personal and business. Set positive tone." },
+  { id: "scorecard", title: "Scorecard Review", duration: 5, description: "Review weekly metrics. Are numbers on track? Drop issues for any off-track items." },
+  { id: "rocks", title: "Rock Review", duration: 5, description: "Each person reports: on track or off track. No discussion — drop issues if off track." },
+  { id: "headlines", title: "Customer & Employee Headlines", duration: 5, description: "Any significant customer or employee news — good or bad. Drop issues if needed." },
+  { id: "todo", title: "To-Do List Review", duration: 5, description: "Review previous week's to-dos. Done or not done (no excuses). Create new to-dos as needed." },
+  { id: "ids", title: "IDS — Identify, Discuss, Solve", duration: 60, description: "Work through the issues list. Prioritise top 3. Identify root cause, discuss, solve and assign action." },
+  { id: "conclude", title: "Conclude", duration: 5, description: "Review to-dos created. Cascading messages — what needs to be communicated to the wider team. Rate the meeting 1–10." },
+];
+
+function MeetingsPage({ business, onUpdate, canEdit }) {
+  const meetings = business.meetings || [];
+  const [activeType, setActiveType] = useState("weekly");
+  const [showAdd, setShowAdd] = useState(false);
+  const [activeMeeting, setActiveMeeting] = useState(null);
+  const [draft, setDraft] = useState({ title: "", date: new Date().toISOString().slice(0, 10), attendees: "", notes: "", agendaItems: {}, rating: "", todos: [] });
+
+  const typeMeetings = meetings.filter(m => m.type === activeType).sort((a, b) => b.date.localeCompare(a.date));
+
+  function openNew() {
+    setDraft({ title: "", date: new Date().toISOString().slice(0, 10), attendees: "", notes: "", agendaItems: {}, rating: "", todos: [], type: activeType });
+    setActiveMeeting(null);
+    setShowAdd(true);
+  }
+
+  function openMeeting(m) { setActiveMeeting(m); setDraft({ ...m }); setShowAdd(true); }
+
+  function saveMeeting() {
+    const toSave = { ...draft, type: activeType, id: activeMeeting?.id || uid() };
+    const updated = activeMeeting
+      ? meetings.map(m => m.id === activeMeeting.id ? toSave : m)
+      : [...meetings, toSave];
+    onUpdate({ ...business, meetings: updated });
+    setShowAdd(false); setActiveMeeting(null);
+  }
+
+  function deleteMeeting(id) { onUpdate({ ...business, meetings: meetings.filter(m => m.id !== id) }); }
+
+  function addTodo() { setDraft(d => ({ ...d, todos: [...(d.todos || []), { id: uid(), text: "", owner: "", done: false }] })); }
+  function updateTodo(i, field, val) { setDraft(d => ({ ...d, todos: d.todos.map((t, idx) => idx === i ? { ...t, [field]: val } : t) })); }
+  function removeTodo(i) { setDraft(d => ({ ...d, todos: d.todos.filter((_, idx) => idx !== i) })); }
+
+  const isWeekly = activeType === "weekly";
+
+  return (
+    <div className="animate-in">
+      {/* Type tabs */}
+      <div className="tabs" style={{ marginBottom: 24 }}>
+        {MEETING_TYPES.map(t => (
+          <button key={t.id} className={`tab ${activeType === t.id ? "active" : ""}`} onClick={() => setActiveType(t.id)}>
+            {t.icon} {t.label}
+            <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.6 }}>{meetings.filter(m => m.type === t.id).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Type description */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <p className="text-muted">{MEETING_TYPES.find(t => t.id === activeType)?.desc}</p>
+        {canEdit && <button className="btn btn-primary" onClick={openNew}>+ New Meeting</button>}
+      </div>
+
+      {/* Weekly agenda preview */}
+      {isWeekly && typeMeetings.length === 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-header"><span className="card-title">EOS L10 Agenda — 90 Minutes</span></div>
+          <div className="card-body">
+            {L10_AGENDA.map((item, i) => (
+              <div key={item.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 14, padding: "12px 0", borderBottom: i < L10_AGENDA.length - 1 ? `1px solid ${BRAND.border}` : "none", alignItems: "start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: BRAND.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: BRAND.navy }}>{item.title}</div>
+                  <div style={{ fontSize: 12, color: BRAND.muted, marginTop: 2 }}>{item.description}</div>
+                </div>
+                <div style={{ fontSize: 12, color: BRAND.muted, whiteSpace: "nowrap", fontWeight: 600 }}>{item.duration} min</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Past meetings list */}
+      {typeMeetings.length === 0
+        ? <div className="empty-state"><div className="empty-state-icon">📅</div><div className="empty-state-title">No {MEETING_TYPES.find(t => t.id === activeType)?.label} meetings yet</div><p>Start your first meeting to begin building a record.</p></div>
+        : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {typeMeetings.map(m => {
+              const completedTodos = (m.todos || []).filter(t => t.done).length;
+              const totalTodos = (m.todos || []).length;
+              return (
+                <div key={m.id} className="card" style={{ cursor: "pointer" }} onClick={() => openMeeting(m)}>
+                  <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: BRAND.navy }}>{m.title || `${MEETING_TYPES.find(t => t.id === m.type)?.label} — ${m.date}`}</div>
+                      <div style={{ fontSize: 12, color: BRAND.muted, marginTop: 2 }}>
+                        {m.date}{m.attendees ? ` · ${m.attendees}` : ""}{totalTodos > 0 ? ` · ${completedTodos}/${totalTodos} to-dos done` : ""}
+                      </div>
+                    </div>
+                    {m.rating && (
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: Number(m.rating) >= 8 ? BRAND.green : Number(m.rating) >= 6 ? "#f59e0b" : "#dc2626" }}>{m.rating}/10</div>
+                        <div style={{ fontSize: 10, color: BRAND.muted }}>Rating</div>
+                      </div>
+                    )}
+                    {canEdit && (
+                      <button className="btn btn-danger btn-sm btn-icon" onClick={e => { e.stopPropagation(); deleteMeeting(m.id); }}>✕</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      }
+
+      {/* Add/Edit Meeting Modal */}
+      {showAdd && (
+        <Modal title={activeMeeting ? `Edit Meeting` : `New ${MEETING_TYPES.find(t => t.id === activeType)?.label}`} onClose={() => { setShowAdd(false); setActiveMeeting(null); }}
+          footer={<><button className="btn btn-ghost" onClick={() => { setShowAdd(false); setActiveMeeting(null); }}>Cancel</button><button className="btn btn-primary" onClick={saveMeeting}>Save Meeting</button></>}>
+
+          <div className="grid-2">
+            <div className="field"><label>Title (optional)</label>
+              <input className="input" value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} placeholder={`${MEETING_TYPES.find(t => t.id === activeType)?.label}`} />
+            </div>
+            <div className="field"><label>Date</label>
+              <input className="input" type="date" value={draft.date} onChange={e => setDraft(d => ({ ...d, date: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid-2">
+            <div className="field"><label>Attendees</label>
+              <input className="input" value={draft.attendees} onChange={e => setDraft(d => ({ ...d, attendees: e.target.value }))} placeholder="e.g. Sarah, James, Emily" />
+            </div>
+            <div className="field"><label>Meeting Rating (1–10)</label>
+              <input className="input" type="number" min="1" max="10" value={draft.rating} onChange={e => setDraft(d => ({ ...d, rating: e.target.value }))} placeholder="e.g. 8" />
+            </div>
+          </div>
+
+          {/* Weekly L10 agenda items */}
+          {isWeekly && (
+            <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: 16, marginTop: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: BRAND.muted, marginBottom: 12 }}>Agenda Notes</div>
+              {L10_AGENDA.map(item => (
+                <div key={item.id} className="field">
+                  <label>{item.title} <span style={{ fontWeight: 400, color: BRAND.muted }}>({item.duration} min)</span></label>
+                  <textarea className="textarea" style={{ minHeight: 56 }}
+                    value={draft.agendaItems?.[item.id] || ""}
+                    onChange={e => setDraft(d => ({ ...d, agendaItems: { ...(d.agendaItems || {}), [item.id]: e.target.value } }))}
+                    placeholder={item.description} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Non-weekly: general notes */}
+          {!isWeekly && (
+            <div className="field"><label>Meeting Notes</label>
+              <textarea className="textarea" style={{ minHeight: 120 }} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} placeholder="Key discussion points, decisions made, outcomes..." />
+            </div>
+          )}
+
+          {/* To-Dos */}
+          <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: 16, marginTop: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: BRAND.muted }}>To-Dos</div>
+              {canEdit && <button className="btn btn-ghost btn-sm" onClick={addTodo}>+ Add</button>}
+            </div>
+            {(draft.todos || []).length === 0
+              ? <p style={{ fontSize: 13, color: BRAND.muted }}>No to-dos yet — add action items from this meeting.</p>
+              : (draft.todos || []).map((t, i) => (
+                <div key={t.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <input type="checkbox" checked={t.done} onChange={e => updateTodo(i, "done", e.target.checked)} style={{ accentColor: BRAND.green, width: 16, height: 16, flexShrink: 0 }} />
+                  <input className="input" value={t.text} onChange={e => updateTodo(i, "text", e.target.value)} placeholder="Action item..." style={{ flex: 1, textDecoration: t.done ? "line-through" : "none", color: t.done ? BRAND.muted : BRAND.text }} />
+                  <input className="input" value={t.owner} onChange={e => updateTodo(i, "owner", e.target.value)} placeholder="Owner" style={{ width: 100 }} />
+                  <button onClick={() => removeTodo(i)} style={{ background: "none", border: "none", color: BRAND.muted, cursor: "pointer", fontSize: 16 }}>×</button>
+                </div>
+              ))
+            }
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "⊞", section: "Overview" },
   { id: "vto", label: "Vision / Traction", icon: "🗺", section: "Business Plan" },
   { id: "rocks", label: "Rocks", icon: "🪨" },
   { id: "issues", label: "Issues List", icon: "⚡" },
   { id: "marketing", label: "Marketing Strategy", icon: "📣" },
+  { id: "meetings", label: "Meetings", icon: "📅", section: "Meetings" },
+  { id: "scorecard", label: "Scorecard", icon: "📈" },
+  { id: "financials", label: "Financial Data", icon: "📊" },
+  { id: "team", label: "Team", icon: "👥", section: "People" },
+  { id: "org_chart", label: "Org Chart", icon: "🏢" },
+  { id: "performance", label: "Performance Reviews", icon: "⭐" },
   { id: "checklist", label: "Business Checklist", icon: "✅", section: "Checklists" },
   { id: "risk", label: "Risk Management", icon: "🛡" },
   { id: "financial_checklist", label: "Financial Checklist", icon: "💳" },
-  { id: "people_checklist", label: "People & HR", icon: "👥" },
-  { id: "financials", label: "Financial Data", icon: "📊", section: "Performance" },
-  { id: "performance", label: "Performance Reviews", icon: "⭐" },
-  { id: "org_chart", label: "Org Chart", icon: "🏢" },
+  { id: "people_checklist", label: "People & HR", icon: "👤" },
 ];
 
 export default function App() {
@@ -3099,10 +4114,13 @@ export default function App() {
     checklist: "Business Management Checklist",
     risk: "Risk Management Checklist",
     financial_checklist: "Financial Checklist",
-    financials: "Financial Data",
+    meetings: "Meetings",
+    scorecard: "Scorecard",
     people_checklist: "People & HR Checklist",
     performance: "Performance Reviews",
     org_chart: "Org Chart",
+    team: "Team",
+    financials: "Financial Data",
   }[page];
 
   const pageSub = {
@@ -3114,10 +4132,13 @@ export default function App() {
     checklist: "Key governance, succession and operational questions",
     risk: "Identify and assess key business risks",
     financial_checklist: "Reporting, planning, tax, banking and internal controls",
-    financials: "Quarterly P&L — Australian Financial Year",
+    meetings: `${(business?.meetings || []).length} meeting${(business?.meetings || []).length !== 1 ? "s" : ""} recorded`,
+    scorecard: `${(business?.scorecard?.metrics || []).length} metric${(business?.scorecard?.metrics || []).length !== 1 ? "s" : ""} tracked`,
     people_checklist: "Structure, contracts, onboarding, performance and culture",
     performance: `${(business?.people || []).length} team member${(business?.people || []).length !== 1 ? "s" : ""}`,
     org_chart: "Reporting structure, team directory & review status",
+    team: `${(business?.people || []).length} team member${(business?.people || []).length !== 1 ? "s" : ""}`,
+    financials: "Quarterly P&L — Australian Financial Year",
   }[page];
 
   return (
@@ -3126,6 +4147,25 @@ export default function App() {
       <div className="app">
         <aside className="sidebar">
           <div className="sidebar-logo">
+            {/* Company logo */}
+            {business?.logo
+              ? <img src={business.logo} alt={business.name} style={{ height: 36, maxWidth: 160, objectFit: "contain", marginBottom: 6, display: "block" }} />
+              : canEdit && activeBizId ? (
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: BRAND.muted, cursor: "pointer", marginBottom: 6, background: BRAND.offWhite, border: `1px dashed ${BRAND.border}`, borderRadius: 6, padding: "4px 10px" }}>
+                  + Upload Logo
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => updateBusiness({ ...business, logo: ev.target.result });
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              ) : null
+            }
+            {business?.logo && canEdit && (
+              <button onClick={() => updateBusiness({ ...business, logo: "" })} style={{ background: "none", border: "none", fontSize: 10, color: BRAND.muted, cursor: "pointer", display: "block", marginBottom: 4, padding: 0 }}>Remove logo</button>
+            )}
             <span>The Wealth Network</span>
             <h1>Business Intelligence</h1>
           </div>
@@ -3187,9 +4227,13 @@ export default function App() {
               : page === "checklist" ? <ChecklistPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
               : page === "risk" ? <GenericChecklistPage business={business} storageKey="risk" sections={RISK_SECTIONS} onUpdate={updateBusiness} canEdit={canEdit} />
               : page === "financial_checklist" ? <GenericChecklistPage business={business} storageKey="financial_checklist" sections={FINANCIAL_CHECKLIST_SECTIONS} onUpdate={updateBusiness} canEdit={canEdit} />
+              : page === "meetings" ? <MeetingsPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
+              : page === "new_business" ? <NewBusinessPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
+              : page === "scorecard" ? <ScorecardPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
               : page === "financials" ? <FinancialsPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
               : page === "people_checklist" ? <GenericChecklistPage business={business} storageKey="people_checklist" sections={PEOPLE_CHECKLIST_SECTIONS} onUpdate={updateBusiness} canEdit={canEdit} />
-              : page === "performance" ? <PeoplePage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
+              : page === "team" ? <TeamPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
+              : page === "performance" ? <ReviewsPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
               : page === "org_chart" ? <OrgChartPage business={business} onUpdate={updateBusiness} canEdit={canEdit} />
               : null
             }
