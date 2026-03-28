@@ -661,6 +661,8 @@ const defaultBusinesses = {
     reviews: {},
     financials: [],
     budgets: {},
+  },
+  vertex: {
     id: "vertex",
     name: "Vertex Wealth",
     vto: {
